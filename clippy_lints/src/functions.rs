@@ -108,6 +108,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Functions {
         }
 
         self.check_raw_ptr(cx, unsafety, decl, body, nodeid);
+        self.check_recursive_arguments(cx, decl, body, nodeid);
     }
 
     fn check_trait_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::TraitItem) {
@@ -164,6 +165,20 @@ impl<'a, 'tcx> Functions {
                 hir::intravisit::walk_expr(&mut v, expr);
             }
         }
+    }
+
+    fn check_recursive_arguments(
+        &self,
+        cx: &LateContext<'a, 'tcx>,
+        decl: &'tcx hir::FnDecl,
+        body: &'tcx hir::Body,
+        nodeid: ast::NodeId,
+    ) {
+        let mut arg_ids = vec![];
+        for arg in &decl.inputs {
+            arg_ids.push((arg.id, 0));
+        }
+
     }
 }
 
@@ -228,5 +243,32 @@ impl<'a, 'tcx: 'a> DerefVisitor<'a, 'tcx> {
                 }
             }
         }
+    }
+}
+
+struct RecursiveVisitor<'a, 'tcx: 'a> {
+    cx: &'a LateContext<'a, 'tcx>,
+    args: Vec<ast::NodeId>,
+    fn_id: ast::NodeId,
+}
+
+impl<'a, 'tcx> hir::intravisit::Visitor<'tcx> for RecursiveVisitor<'a, 'tcx> {
+    fn visit_expr(&mut self, ex: &'tcx hir::Expr) {
+        match ex.node {
+            hir::Expr_::ExprCall(..) => {
+
+            },
+            hir::Expr_::ExprMethodCall(..) => {
+
+            },
+            hir::Expr_::ExprPath(ref qpath) => {
+
+            },
+            _ => {},
+        }
+    }
+
+    fn nested_visit_map<'this>(&'this mut self) -> intravisit::NestedVisitorMap<'this, 'tcx> {
+        intravisit::NestedVisitorMap::None
     }
 }
