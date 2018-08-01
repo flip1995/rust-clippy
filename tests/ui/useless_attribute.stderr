@@ -1,8 +1,8 @@
 error: useless lint attribute
   --> $DIR/useless_attribute.rs:15:1
    |
-15 | #[allow(dead_code)]
-   | ^^^^^^^^^^^^^^^^^^^ help: if you just forgot a `!`, use: `#![allow(dead_code)]`
+15 | #[allow(dead_code, clippy::deprecated_cfg_attr)]
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: if you just forgot a `!`, use: `#![allow(dead_code, clippy::deprecated_cfg_attr)]`
    |
    = note: `-D clippy::useless-attribute` implied by `-D warnings`
 

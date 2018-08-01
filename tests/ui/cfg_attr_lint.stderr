@@ -1,0 +1,10 @@
+error: `cfg_attr` is deprecated for clippy and got replaced by tool_lints
+ --> $DIR/cfg_attr_lint.rs:5:1
+  |
+5 | #[cfg_attr(feature="cargo-clippy", warn(absurd_extreme_comparisons, almost_swapped))]
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: use: `#[warn(clippy::absurd_extreme_comparisons, clippy::almost_swapped)]`
+  |
+  = note: `-D deprecated-cfg-attr` implied by `-D warnings`
+
+error: aborting due to previous error
+

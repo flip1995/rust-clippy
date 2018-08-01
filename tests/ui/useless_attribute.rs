@@ -12,7 +12,7 @@
 
 #![warn(clippy::useless_attribute)]
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::deprecated_cfg_attr)]
 #[cfg_attr(feature = "cargo-clippy", allow(dead_code))]
 #[cfg_attr(feature = "cargo-clippy",
            allow(dead_code))]
