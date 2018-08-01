@@ -13,10 +13,10 @@
 use crate::reexport::*;
 use crate::utils::{
     in_macro, last_line_of_span, match_def_path, opt_def_id, paths, snippet_opt, span_lint, span_lint_and_then,
-    without_block_comments,
+    span_lint_and_sugg, without_block_comments,
 };
 use crate::rustc::hir::*;
-use crate::rustc::lint::{LateContext, LateLintPass, LintArray, LintPass};
+use crate::rustc::lint::{EarlyContext, EarlyLintPass, LateContext, LateLintPass, LintArray, LintPass};
 use crate::rustc::{declare_tool_lint, lint_array};
 use if_chain::if_chain;
 use crate::rustc::ty::{self, TyCtxt};
@@ -136,6 +136,19 @@ declare_clippy_lint! {
     pub EMPTY_LINE_AFTER_OUTER_ATTR,
     nursery,
     "empty line after outer attribute"
+}
+
+/// **What it does:**
+///
+/// **Why is this bad?**
+///
+/// **Known problems:**
+///
+/// **Example:**
+declare_clippy_lint! {
+    pub DEPRECATED_CFG_ATTR,
+    complexity,
+    "usage of `cfg_attr` instead of `tool_lints`"
 }
 
 #[derive(Copy, Clone)]
@@ -387,3 +400,63 @@ fn is_present_in_source(cx: &LateContext<'_, '_>, span: Span) -> bool {
     }
     true
 }
+
+#[derive(Copy, Clone)]
+pub struct CfgAttrPass;
+
+impl LintPass for CfgAttrPass {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(
+            DEPRECATED_CFG_ATTR,
+        )
+    }
+}
+
+impl EarlyLintPass for CfgAttrPass {
+    fn check_attribute(&mut self, cx: &EarlyContext<'_>, attr: &Attribute) {
+        if_chain! {
+            // check cfg_attr
+            if attr.name() == "cfg_attr";
+            if let Some(ref items) = attr.meta_item_list();
+            if items.len() == 2;
+            // check for `feature = "cargo-clippy"`
+            if let Some(feature_item) = items[0].meta_item();
+            if let Some(value) = feature_item.value_str();
+            if value == "cargo-clippy";
+            // check for `allow(..)`/... and retrieve the lints
+            let level = &items[1];
+            if let Some(name) = level.name();
+            if name == "allow" || name == "warn" || name == "deny" || name == "forbid";
+            if let Some(level_items) = level.meta_item_list();
+            if level_items.iter().all(|item| {
+                if let Some(meta_item) = item.meta_item() {
+                    meta_item.is_word()
+                } else {
+                    false
+                }
+            });
+            then {
+                let attr_style = match attr.style {
+                    AttrStyle::Outer => "#[",
+                    AttrStyle::Inner => "#![",
+                };
+                let level = name.as_str();
+                let mut lints = level_items.iter().fold(String::new(), |acc, item| {
+                    acc + &format!("clippy::{}, ", item.name().unwrap().as_str())
+                });
+                let lints_len = lints.len();
+                lints.truncate(lints_len - 2);
+                let sugg = format!("{}{}({})]", attr_style, level, lints);
+                span_lint_and_sugg(
+                    cx,
+                    DEPRECATED_CFG_ATTR,
+                    attr.span,
+                    "`cfg_attr` is deprecated for clippy and got replaced by tool_lints",
+                    "use",
+                    sugg,
+                );
+            }
+        }
+    }
+}
+
