@@ -159,9 +159,40 @@ declare_clippy_lint! {
 }
 
 declare_clippy_lint! {
+    /// **What it does:** Checks for arguments of a function that are prefixed with an underscore.
+    ///
+    /// **Why is this bad?** This just makes the function signature more complex. In some cases a
+    /// unused arg is intended. This includes
+    ///
+    /// - The type of the argument implements drop
+    /// - The argument is in a public API, because of backward compatibility or for future use
+    /// - It comes from a trait implementation
+    ///
+    /// **Known Problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// Bad:
+    /// ```rust
+    /// fn foo(_s: u32) {
+    ///     // code not using `_s`
+    /// }
+    /// ```
+    ///
+    /// Good:
+    /// ```rust
+    /// fn foo() {
+    ///     // code
+    /// }
+    /// ```
+    pub UNUSED_UNDERSCORE_ARG,
+    complexity,
+    "having a `_.*` argument in a function, that isn't used"
+}
+
+declare_clippy_lint! {
     /// **What it does:** Checks for the use of short circuit boolean conditions as
-    /// a
-    /// statement.
+    /// a statement.
     ///
     /// **Why is this bad?** Using a short circuit boolean condition as a statement
     /// may hide the fact that the second part is executed or not depending on the
@@ -226,6 +257,7 @@ declare_lint_pass!(MiscLints => [
     CMP_OWNED,
     MODULO_ONE,
     USED_UNDERSCORE_BINDING,
+    UNUSED_UNDERSCORE_ARG,
     SHORT_CIRCUIT_STATEMENT,
     ZERO_PTR,
     FLOAT_CMP_CONST
@@ -259,6 +291,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
                 _ => {},
             }
         }
+        lint_unused_underscore_args(&decl.inputs, body);
     }
 
     fn check_stmt(&mut self, cx: &LateContext<'a, 'tcx>, s: &'tcx Stmt) {
@@ -436,6 +469,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
             );
         }
     }
+}
+
+fn lint_unused_underscore_args(fn_body: &Body) {
+    fn_body.params.iter().filter(|param| )
 }
 
 fn check_nan(cx: &LateContext<'_, '_>, path: &Path, expr: &Expr) {
