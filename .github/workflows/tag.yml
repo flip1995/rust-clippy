@@ -1,0 +1,54 @@
+name: Auto Tag
+
+on:
+  schedule:
+    - cron: '0 0 31 1 *'
+
+env:
+  NEXT_TAG: '41'
+  SSH_REPO: 'git@github.com:${{ github.repository }}.git'
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2.0.0
+    - name: Checkout
+      uses: actions/checkout@v2.0.0
+      with:
+        repository: 'rust-lang/rust'
+        ref: '1.${{ env.NEXT_TAG }}.0'
+        path: 'rust'
+    - name: Get Clippy commit
+      working-directory: rust
+      run: |
+        git submodule init src/tools/clippy
+        CLIPPY_SHA=$(git submodule status -- src/tools/clippy | grep -o '\s[0-9a-f]*\s' | tr -d '[:space:]')
+        echo "::set-env name=CLIPPY_SHA::$CLIPPY_SHA"
+    - name: Set SSH deploy key
+      run: |
+        eval "$(ssh-agens -s)"
+        ssh-add - <<< ${{ secrets.DEPLOY_KEY }}
+    - name: Tag Clippy commit
+      run: |
+        git checkout $CLIPPY_SHA
+        git tag 'rust-1.$NEXT_TAG.0'
+        git push $SSH_REPO --tags
+    - name: Update GHA Auto Tag
+      run: |
+        git checkout master
+
+        TIME=$(date -u +%s)
+        let NEXT_RELEASE="$TIME+6*7*24*60*60"
+        DATE=$(date -u --date="@$NEXT_RELEASE" +%-d\ %-m)
+        CRON="0 0 $DATE *"
+        sed -i "s/cron: '[0-9* ]*'/cron: '$CRON'/" .github/workflows/tag.yml
+
+        let NEW_TAG="$NEXT_TAG+1"
+        sed -i "s/NEXT_TAG: '[0-9]*'/NEXT_TAG: '$NEW_TAG'/" .github/workflows/tag.yml
+
+        git add .github/workflows/tag.yml
+        git commit -m "Update GHA tag workflow"
+        git push $SSH_REPO
