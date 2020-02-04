@@ -18,7 +18,9 @@ use rustc_session::{declare_lint_pass, declare_tool_lint};
 use syntax::ast;
 
 use crate::utils::sugg::Sugg;
-use crate::utils::{snippet_block, snippet_block_with_applicability, span_lint_and_sugg, span_lint_and_then};
+use crate::utils::{
+    first_char_in_first_line, snippet_block, snippet_block_with_applicability, span_lint_and_sugg, span_lint_and_then,
+};
 use rustc_errors::Applicability;
 
 declare_clippy_lint! {
@@ -95,7 +97,7 @@ fn check_if(cx: &EarlyContext<'_>, expr: &ast::Expr) {
 
 fn block_starts_with_comment(cx: &EarlyContext<'_>, expr: &ast::Block) -> bool {
     // We trim all opening braces and whitespaces and then check if the next string is a comment.
-    let trimmed_block_text = snippet_block(cx, expr.span, "..")
+    let trimmed_block_text = snippet_block(cx, expr.span, "..", None)
         .trim_start_matches(|c: char| c.is_whitespace() || c == '{')
         .to_owned();
     trimmed_block_text.starts_with("//") || trimmed_block_text.starts_with("/*")
@@ -116,7 +118,7 @@ fn check_collapsible_maybe_if_let(cx: &EarlyContext<'_>, else_: &ast::Expr) {
                 block.span,
                 "this `else { if .. }` block can be collapsed",
                 "try",
-                snippet_block_with_applicability(cx, else_.span, "..", &mut applicability).into_owned(),
+                snippet_block_with_applicability(cx, else_.span, "..", None, &mut applicability).into_owned(),
                 applicability,
             );
         }
@@ -146,7 +148,7 @@ fn check_collapsible_no_if_let(cx: &EarlyContext<'_>, expr: &ast::Expr, check: &
                     format!(
                         "if {} {}",
                         lhs.and(&rhs),
-                        snippet_block(cx, content.span, ".."),
+                        snippet_block(cx, content.span, "..", first_char_in_first_line(cx, expr.span)),
                     ),
                     Applicability::MachineApplicable, // snippet
                 );

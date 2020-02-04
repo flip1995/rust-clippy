@@ -541,11 +541,11 @@ pub fn snippet_opt<T: LintContext>(cx: &T, span: Span) -> Option<String> {
 ///
 /// # Example
 /// ```rust,ignore
-/// snippet_block(cx, expr.span, "..")
+/// snippet_block(cx, expr.span, "..", None)
 /// ```
-pub fn snippet_block<'a, T: LintContext>(cx: &T, span: Span, default: &'a str) -> Cow<'a, str> {
+pub fn snippet_block<'a, T: LintContext>(cx: &T, span: Span, default: &'a str, indent: Option<usize>) -> Cow<'a, str> {
     let snip = snippet(cx, span, default);
-    trim_multiline(snip, true)
+    trim_multiline(snip, true, indent)
 }
 
 /// Same as `snippet_block`, but adapts the applicability level by the rules of
@@ -554,26 +554,40 @@ pub fn snippet_block_with_applicability<'a, T: LintContext>(
     cx: &T,
     span: Span,
     default: &'a str,
+    indent: Option<usize>,
     applicability: &mut Applicability,
 ) -> Cow<'a, str> {
     let snip = snippet_with_applicability(cx, span, default, applicability);
-    trim_multiline(snip, true)
+    trim_multiline(snip, true, indent)
 }
 
-/// Returns a new Span that covers the full last line of the given Span
-pub fn last_line_of_span<T: LintContext>(cx: &T, span: Span) -> Span {
+/// Returns a new Span that extends the original Span to the first non-whitespace char of the first
+/// line.
+///
+/// ```rust,ignore
+///     let x = ();
+/// //          ^^
+/// // will be converted to
+///     let x = ();
+/// //  ^^^^^^^^^^
+/// ```
+pub fn first_line_of_span<T: LintContext>(cx: &T, span: Span) -> Span {
+    if let Some(first_char_pos) = first_char_in_first_line(cx, span) {
+        span.with_lo(span.lo() + BytePos::from_usize(first_char_pos))
+    } else {
+        span
+    }
+}
+
+pub fn first_char_in_first_line<T: LintContext>(cx: &T, span: Span) -> Option<usize> {
     let source_map_and_line = cx.sess().source_map().lookup_line(span.lo()).unwrap();
     let line_no = source_map_and_line.line;
-    let line_start = &source_map_and_line.sf.lines[line_no];
-    let span = Span::new(*line_start, span.hi(), span.ctxt());
-    if_chain! {
-        if let Some(snip) = snippet_opt(cx, span);
-        if let Some(first_ch_pos) = snip.find(|c: char| !c.is_whitespace());
-        then {
-            span.with_lo(span.lo() + BytePos::from_usize(first_ch_pos))
-        } else {
-            span
-        }
+    let line_start = source_map_and_line.sf.lines[line_no];
+    let line_span = Span::new(line_start, span.hi(), span.ctxt());
+    if let Some(snip) = snippet_opt(cx, line_span) {
+        snip.find(|c: char| !c.is_whitespace())
+    } else {
+        None
     }
 }
 
@@ -585,7 +599,7 @@ pub fn expr_block<'a, T: LintContext>(
     option: Option<String>,
     default: &'a str,
 ) -> Cow<'a, str> {
-    let code = snippet_block(cx, expr.span, default);
+    let code = snippet_block(cx, expr.span, default, None);
     let string = option.unwrap_or_default();
     if expr.span.from_expansion() {
         Cow::Owned(format!("{{ {} }}", snippet_with_macro_callsite(cx, expr.span, default)))
@@ -600,14 +614,14 @@ pub fn expr_block<'a, T: LintContext>(
 
 /// Trim indentation from a multiline string with possibility of ignoring the
 /// first line.
-pub fn trim_multiline(s: Cow<'_, str>, ignore_first: bool) -> Cow<'_, str> {
-    let s_space = trim_multiline_inner(s, ignore_first, ' ');
-    let s_tab = trim_multiline_inner(s_space, ignore_first, '\t');
-    trim_multiline_inner(s_tab, ignore_first, ' ')
+pub fn trim_multiline(s: Cow<'_, str>, ignore_first: bool, indent: Option<usize>) -> Cow<'_, str> {
+    let s_space = trim_multiline_inner(s, ignore_first, indent, ' ');
+    let s_tab = trim_multiline_inner(s_space, ignore_first, indent, '\t');
+    trim_multiline_inner(s_tab, ignore_first, indent, ' ')
 }
 
-fn trim_multiline_inner(s: Cow<'_, str>, ignore_first: bool, ch: char) -> Cow<'_, str> {
-    let x = s
+fn trim_multiline_inner(s: Cow<'_, str>, ignore_first: bool, indent: Option<usize>, ch: char) -> Cow<'_, str> {
+    let mut x = s
         .lines()
         .skip(ignore_first as usize)
         .filter_map(|l| {
@@ -620,6 +634,9 @@ fn trim_multiline_inner(s: Cow<'_, str>, ignore_first: bool, ch: char) -> Cow<'_
         })
         .min()
         .unwrap_or(0);
+    if let Some(indent) = indent {
+        x = x.saturating_sub(indent);
+    }
     if x > 0 {
         Cow::Owned(
             s.lines()
@@ -1141,87 +1158,6 @@ pub fn is_normalizable<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, param_env: ty::Para
     })
 }
 
-#[cfg(test)]
-mod test {
-    use super::{trim_multiline, without_block_comments};
-
-    #[test]
-    fn test_trim_multiline_single_line() {
-        assert_eq!("", trim_multiline("".into(), false));
-        assert_eq!("...", trim_multiline("...".into(), false));
-        assert_eq!("...", trim_multiline("    ...".into(), false));
-        assert_eq!("...", trim_multiline("\t...".into(), false));
-        assert_eq!("...", trim_multiline("\t\t...".into(), false));
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn test_trim_multiline_block() {
-        assert_eq!("\
-    if x {
-        y
-    } else {
-        z
-    }", trim_multiline("    if x {
-            y
-        } else {
-            z
-        }".into(), false));
-        assert_eq!("\
-    if x {
-    \ty
-    } else {
-    \tz
-    }", trim_multiline("    if x {
-        \ty
-        } else {
-        \tz
-        }".into(), false));
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn test_trim_multiline_empty_line() {
-        assert_eq!("\
-    if x {
-        y
-
-    } else {
-        z
-    }", trim_multiline("    if x {
-            y
-
-        } else {
-            z
-        }".into(), false));
-    }
-
-    #[test]
-    fn test_without_block_comments_lines_without_block_comments() {
-        let result = without_block_comments(vec!["/*", "", "*/"]);
-        println!("result: {:?}", result);
-        assert!(result.is_empty());
-
-        let result = without_block_comments(vec!["", "/*", "", "*/", "#[crate_type = \"lib\"]", "/*", "", "*/", ""]);
-        assert_eq!(result, vec!["", "#[crate_type = \"lib\"]", ""]);
-
-        let result = without_block_comments(vec!["/* rust", "", "*/"]);
-        assert!(result.is_empty());
-
-        let result = without_block_comments(vec!["/* one-line comment */"]);
-        assert!(result.is_empty());
-
-        let result = without_block_comments(vec!["/* nested", "/* multi-line", "comment", "*/", "test", "*/"]);
-        assert!(result.is_empty());
-
-        let result = without_block_comments(vec!["/* nested /* inline /* comment */ test */ */"]);
-        assert!(result.is_empty());
-
-        let result = without_block_comments(vec!["foo", "bar", "baz"]);
-        assert_eq!(result, vec!["foo", "bar", "baz"]);
-    }
-}
-
 pub fn match_def_path<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, did: DefId, syms: &[&str]) -> bool {
     let path = cx.get_def_path(did);
     path.len() == syms.len() && path.into_iter().zip(syms.iter()).all(|(a, &b)| a.as_str() == b)
@@ -1353,4 +1289,85 @@ pub fn is_no_std_crate(krate: &Crate<'_>) -> bool {
             false
         }
     })
+}
+
+#[cfg(test)]
+mod test {
+    use super::{trim_multiline, without_block_comments};
+
+    #[test]
+    fn test_trim_multiline_single_line() {
+        assert_eq!("", trim_multiline("".into(), false, None));
+        assert_eq!("...", trim_multiline("...".into(), false, None));
+        assert_eq!("...", trim_multiline("    ...".into(), false, None));
+        assert_eq!("...", trim_multiline("\t...".into(), false, None));
+        assert_eq!("...", trim_multiline("\t\t...".into(), false, None));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_trim_multiline_block() {
+        assert_eq!("\
+    if x {
+        y
+    } else {
+        z
+    }", trim_multiline("    if x {
+            y
+        } else {
+            z
+        }".into(), false, None));
+        assert_eq!("\
+    if x {
+    \ty
+    } else {
+    \tz
+    }", trim_multiline("    if x {
+        \ty
+        } else {
+        \tz
+        }".into(), false, None));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_trim_multiline_empty_line() {
+        assert_eq!("\
+    if x {
+        y
+
+    } else {
+        z
+    }", trim_multiline("    if x {
+            y
+
+        } else {
+            z
+        }".into(), false, None));
+    }
+
+    #[test]
+    fn test_without_block_comments_lines_without_block_comments() {
+        let result = without_block_comments(vec!["/*", "", "*/"]);
+        println!("result: {:?}", result);
+        assert!(result.is_empty());
+
+        let result = without_block_comments(vec!["", "/*", "", "*/", "#[crate_type = \"lib\"]", "/*", "", "*/", ""]);
+        assert_eq!(result, vec!["", "#[crate_type = \"lib\"]", ""]);
+
+        let result = without_block_comments(vec!["/* rust", "", "*/"]);
+        assert!(result.is_empty());
+
+        let result = without_block_comments(vec!["/* one-line comment */"]);
+        assert!(result.is_empty());
+
+        let result = without_block_comments(vec!["/* nested", "/* multi-line", "comment", "*/", "test", "*/"]);
+        assert!(result.is_empty());
+
+        let result = without_block_comments(vec!["/* nested /* inline /* comment */ test */ */"]);
+        assert!(result.is_empty());
+
+        let result = without_block_comments(vec!["foo", "bar", "baz"]);
+        assert_eq!(result, vec!["foo", "bar", "baz"]);
+    }
 }

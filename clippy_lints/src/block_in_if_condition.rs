@@ -96,8 +96,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BlockInIfCondition {
                                 BRACED_EXPR_MESSAGE,
                                 &format!(
                                     "try\nif {} {} ... ",
-                                    snippet_block(cx, ex.span, ".."),
-                                    snippet_block(cx, then.span, "..")
+                                    snippet_block(cx, ex.span, "..", None),
+                                    snippet_block(cx, then.span, "..", None)
                                 ),
                             );
                         }
@@ -114,8 +114,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BlockInIfCondition {
                             COMPLEX_BLOCK_MESSAGE,
                             &format!(
                                 "try\nlet res = {};\nif res {} ... ",
-                                snippet_block(cx, block.span, ".."),
-                                snippet_block(cx, then.span, "..")
+                                snippet_block(cx, block.span, "..", None),
+                                snippet_block(cx, then.span, "..", None)
                             ),
                         );
                     }

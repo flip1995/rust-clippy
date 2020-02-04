@@ -315,7 +315,7 @@ fn suggestion_snippet_for_continue_inside_if<'a>(
     // region B
     let else_code = snippet(ctx, data.else_expr.span, "..").into_owned();
     let else_code = erode_block(&else_code);
-    let else_code = trim_multiline(Cow::from(else_code), false);
+    let else_code = trim_multiline(Cow::from(else_code), false, None);
 
     let mut ret = String::from(header);
     ret.push_str(&if_code);
@@ -335,7 +335,7 @@ fn suggestion_snippet_for_continue_inside_else<'a>(
     // Region B
     let block_code = &snippet(ctx, data.if_block.span, "..").into_owned();
     let block_code = erode_block(block_code);
-    let block_code = trim_multiline(Cow::from(block_code), false);
+    let block_code = trim_multiline(Cow::from(block_code), false, None);
 
     if_code.push_str(&block_code);
 
@@ -346,7 +346,7 @@ fn suggestion_snippet_for_continue_inside_else<'a>(
     let to_annex = data.block_stmts[data.stmt_idx + 1..]
         .iter()
         .map(|stmt| original_sp(stmt.span, DUMMY_SP))
-        .map(|span| snippet_block(ctx, span, "..").into_owned())
+        .map(|span| snippet_block(ctx, span, "..", None).into_owned())
         .collect::<Vec<_>>()
         .join("\n");
 
