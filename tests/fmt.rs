@@ -1,9 +1,11 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+mod cargo;
+
 #[test]
 fn fmt() {
-    if option_env!("RUSTC_TEST_SUITE").is_some() || option_env!("NO_FMT_TEST").is_some() {
+    if cargo::is_rustc_test_suite() || option_env!("NO_FMT_TEST").is_some() {
         return;
     }
 
