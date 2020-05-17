@@ -1,6 +1,6 @@
 use crate::utils::{
-    get_trait_def_id, implements_trait, in_macro, is_type_diagnostic_item, paths, snippet_opt, span_lint_and_sugg,
-    span_lint_and_then, SpanlessEq,
+    get_trait_def_id, implements_trait, in_macro, is_type_diagnostic_item, paths, snippet_opt,
+    span_lint_and_sugg, span_lint_and_then, SpanlessEq,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::LitKind;
@@ -80,7 +80,12 @@ struct Hir2Qmm<'a, 'tcx, 'v> {
 }
 
 impl<'a, 'tcx, 'v> Hir2Qmm<'a, 'tcx, 'v> {
-    fn extract(&mut self, op: BinOpKind, a: &[&'v Expr<'_>], mut v: Vec<Bool>) -> Result<Vec<Bool>, String> {
+    fn extract(
+        &mut self,
+        op: BinOpKind,
+        a: &[&'v Expr<'_>],
+        mut v: Vec<Bool>,
+    ) -> Result<Vec<Bool>, String> {
         for a in a {
             if let ExprKind::Binary(binop, lhs, rhs) = &a.kind {
                 if binop.node == op {
@@ -111,8 +116,20 @@ impl<'a, 'tcx, 'v> Hir2Qmm<'a, 'tcx, 'v> {
             match &e.kind {
                 ExprKind::Unary(UnOp::UnNot, inner) => return Ok(Bool::Not(box self.run(inner)?)),
                 ExprKind::Binary(binop, lhs, rhs) => match &binop.node {
-                    BinOpKind::Or => return Ok(Bool::Or(self.extract(BinOpKind::Or, &[lhs, rhs], Vec::new())?)),
-                    BinOpKind::And => return Ok(Bool::And(self.extract(BinOpKind::And, &[lhs, rhs], Vec::new())?)),
+                    BinOpKind::Or => {
+                        return Ok(Bool::Or(self.extract(
+                            BinOpKind::Or,
+                            &[lhs, rhs],
+                            Vec::new(),
+                        )?));
+                    }
+                    BinOpKind::And => {
+                        return Ok(Bool::And(self.extract(
+                            BinOpKind::And,
+                            &[lhs, rhs],
+                            Vec::new(),
+                        )?));
+                    }
                     _ => (),
                 },
                 ExprKind::Lit(lit) => match lit.node {
@@ -165,17 +182,17 @@ impl<'a, 'tcx, 'v> SuggestContext<'a, 'tcx, 'v> {
         match suggestion {
             True => {
                 self.output.push_str("true");
-            },
+            }
             False => {
                 self.output.push_str("false");
-            },
+            }
             Not(inner) => match **inner {
                 And(_) | Or(_) => {
                     self.output.push('!');
                     self.output.push('(');
                     self.recurse(inner);
                     self.output.push(')');
-                },
+                }
                 Term(n) => {
                     let terminal = self.terminals[n as usize];
                     if let Some(str) = simplify_not(self.cx, terminal) {
@@ -185,11 +202,11 @@ impl<'a, 'tcx, 'v> SuggestContext<'a, 'tcx, 'v> {
                         let snip = snippet_opt(self.cx, terminal.span)?;
                         self.output.push_str(&snip);
                     }
-                },
+                }
                 True | False | Not(_) => {
                     self.output.push('!');
                     self.recurse(inner)?;
-                },
+                }
             },
             And(v) => {
                 for (index, inner) in v.iter().enumerate() {
@@ -204,7 +221,7 @@ impl<'a, 'tcx, 'v> SuggestContext<'a, 'tcx, 'v> {
                         self.recurse(inner);
                     }
                 }
-            },
+            }
             Or(v) => {
                 for (index, inner) in v.iter().rev().enumerate() {
                     if index > 0 {
@@ -212,11 +229,11 @@ impl<'a, 'tcx, 'v> SuggestContext<'a, 'tcx, 'v> {
                     }
                     self.recurse(inner);
                 }
-            },
+            }
             &Term(n) => {
                 let snip = snippet_opt(self.cx, self.terminals[n as usize].span)?;
                 self.output.push_str(&snip);
-            },
+            }
         }
         Some(())
     }
@@ -239,14 +256,9 @@ fn simplify_not(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Option<String> {
                 _ => None,
             }
             .and_then(|op| {
-                Some(format!(
-                    "{}{}{}",
-                    snippet_opt(cx, lhs.span)?,
-                    op,
-                    snippet_opt(cx, rhs.span)?
-                ))
+                Some(format!("{}{}{}", snippet_opt(cx, lhs.span)?, op, snippet_opt(cx, rhs.span)?))
             })
-        },
+        }
         ExprKind::MethodCall(path, _, args) if args.len() == 1 => {
             let type_of_receiver = cx.tables.expr_ty(&args[0]);
             if !is_type_diagnostic_item(cx, type_of_receiver, sym!(option_type))
@@ -262,18 +274,16 @@ fn simplify_not(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Option<String> {
                     let path: &str = &path.ident.name.as_str();
                     a == path
                 })
-                .and_then(|(_, neg_method)| Some(format!("{}.{}()", snippet_opt(cx, args[0].span)?, neg_method)))
-        },
+                .and_then(|(_, neg_method)| {
+                    Some(format!("{}.{}()", snippet_opt(cx, args[0].span)?, neg_method))
+                })
+        }
         _ => None,
     }
 }
 
 fn suggest(cx: &LateContext<'_, '_>, suggestion: &Bool, terminals: &[&Expr<'_>]) -> String {
-    let mut suggest_context = SuggestContext {
-        terminals,
-        cx,
-        output: String::new(),
-    };
+    let mut suggest_context = SuggestContext { terminals, cx, output: String::new() };
     suggest_context.recurse(suggestion);
     suggest_context.output
 }
@@ -289,13 +299,13 @@ fn simple_negate(b: Bool) -> Bool {
                 *el = simple_negate(::std::mem::replace(el, True));
             }
             Or(v)
-        },
+        }
         Or(mut v) => {
             for el in &mut v {
                 *el = simple_negate(::std::mem::replace(el, True));
             }
             And(v)
-        },
+        }
         Not(inner) => *inner,
     }
 }
@@ -317,13 +327,13 @@ fn terminal_stats(b: &Bool) -> Stats {
                     _ => stats.negations += 1,
                 }
                 recurse(inner, stats);
-            },
+            }
             And(v) | Or(v) => {
                 stats.ops += v.len() - 1;
                 for inner in v {
                     recurse(inner, stats);
                 }
-            },
+            }
             &Term(n) => stats.terminals[n as usize] += 1,
         }
     }
@@ -335,10 +345,7 @@ fn terminal_stats(b: &Bool) -> Stats {
 
 impl<'a, 'tcx> NonminimalBoolVisitor<'a, 'tcx> {
     fn bool_expr(&self, e: &'tcx Expr<'_>) {
-        let mut h2q = Hir2Qmm {
-            terminals: Vec::new(),
-            cx: self.cx,
-        };
+        let mut h2q = Hir2Qmm { terminals: Vec::new(), cx: self.cx };
         if let Ok(expr) = h2q.run(e) {
             if h2q.terminals.len() > 8 {
                 // QMC has exponentially slow behavior as the number of terminals increases
@@ -351,7 +358,7 @@ impl<'a, 'tcx> NonminimalBoolVisitor<'a, 'tcx> {
             let mut simplified = expr.simplify();
             for simple in Bool::Not(Box::new(expr)).simplify() {
                 match simple {
-                    Bool::Not(_) | Bool::True | Bool::False => {},
+                    Bool::Not(_) | Bool::True | Bool::False => {}
                     _ => simplified.push(Bool::Not(Box::new(simple.clone()))),
                 }
                 let simple_negated = simple_negate(simple);
@@ -398,8 +405,10 @@ impl<'a, 'tcx> NonminimalBoolVisitor<'a, 'tcx> {
                     // if the number of occurrences of a terminal decreases or any of the stats
                     // decreases while none increases
                     improvement |= (stats.terminals[i] > simplified_stats.terminals[i])
-                        || (stats.negations > simplified_stats.negations && stats.ops == simplified_stats.ops)
-                        || (stats.ops > simplified_stats.ops && stats.negations == simplified_stats.negations);
+                        || (stats.negations > simplified_stats.negations
+                            && stats.ops == simplified_stats.ops)
+                        || (stats.ops > simplified_stats.ops
+                            && stats.negations == simplified_stats.negations);
                 }
                 if improvement {
                     improvements.push(suggestion);
@@ -446,16 +455,18 @@ impl<'a, 'tcx> Visitor<'tcx> for NonminimalBoolVisitor<'a, 'tcx> {
             return;
         }
         match &e.kind {
-            ExprKind::Binary(binop, _, _) if binop.node == BinOpKind::Or || binop.node == BinOpKind::And => {
+            ExprKind::Binary(binop, _, _)
+                if binop.node == BinOpKind::Or || binop.node == BinOpKind::And =>
+            {
                 self.bool_expr(e)
-            },
+            }
             ExprKind::Unary(UnOp::UnNot, inner) => {
                 if self.cx.tables.node_types()[inner.hir_id].is_bool() {
                     self.bool_expr(e);
                 } else {
                     walk_expr(self, e);
                 }
-            },
+            }
             _ => walk_expr(self, e),
         }
     }

@@ -61,7 +61,9 @@ impl<'a, 'tcx> intravisit::Visitor<'tcx> for MutVisitor<'a, 'tcx> {
             // Let's ignore the generated code.
             intravisit::walk_expr(self, arg);
             intravisit::walk_expr(self, body);
-        } else if let hir::ExprKind::AddrOf(hir::BorrowKind::Ref, hir::Mutability::Mut, ref e) = expr.kind {
+        } else if let hir::ExprKind::AddrOf(hir::BorrowKind::Ref, hir::Mutability::Mut, ref e) =
+            expr.kind
+        {
             if let hir::ExprKind::AddrOf(hir::BorrowKind::Ref, hir::Mutability::Mut, _) = e.kind {
                 span_lint(
                     self.cx,
@@ -81,22 +83,10 @@ impl<'a, 'tcx> intravisit::Visitor<'tcx> for MutVisitor<'a, 'tcx> {
     }
 
     fn visit_ty(&mut self, ty: &'tcx hir::Ty<'_>) {
-        if let hir::TyKind::Rptr(
-            _,
-            hir::MutTy {
-                ty: ref pty,
-                mutbl: hir::Mutability::Mut,
-            },
-        ) = ty.kind
+        if let hir::TyKind::Rptr(_, hir::MutTy { ty: ref pty, mutbl: hir::Mutability::Mut }) =
+            ty.kind
         {
-            if let hir::TyKind::Rptr(
-                _,
-                hir::MutTy {
-                    mutbl: hir::Mutability::Mut,
-                    ..
-                },
-            ) = pty.kind
-            {
+            if let hir::TyKind::Rptr(_, hir::MutTy { mutbl: hir::Mutability::Mut, .. }) = pty.kind {
                 span_lint(
                     self.cx,
                     MUT_MUT,

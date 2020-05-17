@@ -1,6 +1,8 @@
 use crate::utils::{snippet_opt, span_lint_and_then};
 use if_chain::if_chain;
-use rustc_ast::ast::{Attribute, Item, ItemKind, StructField, Variant, VariantData, VisibilityKind};
+use rustc_ast::ast::{
+    Attribute, Item, ItemKind, StructField, Variant, VariantData, VisibilityKind,
+};
 use rustc_attr as attr;
 use rustc_errors::Applicability;
 use rustc_lint::{EarlyContext, EarlyLintPass};
@@ -62,15 +64,15 @@ impl EarlyLintPass for ManualNonExhaustive {
         match &item.kind {
             ItemKind::Enum(def, _) => {
                 check_manual_non_exhaustive_enum(cx, item, &def.variants);
-            },
+            }
             ItemKind::Struct(variant_data, _) => {
                 if let VariantData::Unit(..) = variant_data {
                     return;
                 }
 
                 check_manual_non_exhaustive_struct(cx, item, variant_data);
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -126,7 +128,9 @@ fn check_manual_non_exhaustive_struct(cx: &EarlyContext<'_>, item: &Item, data: 
     }
 
     fn is_non_exhaustive_marker(field: &StructField) -> bool {
-        is_private(field) && field.ty.kind.is_unit() && field.ident.map_or(true, |n| n.as_str().starts_with('_'))
+        is_private(field)
+            && field.ty.kind.is_unit()
+            && field.ident.map_or(true, |n| n.as_str().starts_with('_'))
     }
 
     fn find_header_span(cx: &EarlyContext<'_>, item: &Item, data: &VariantData) -> Span {

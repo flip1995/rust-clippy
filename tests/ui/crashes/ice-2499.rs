@@ -10,17 +10,17 @@ fn f(s: &[u8]) -> bool {
     let t = s[0] as char;
 
     match t {
-        'E' | 'W' => {},
+        'E' | 'W' => {}
         'T' => {
             if s[0..4] != ['0' as u8; 4] {
                 return false;
             } else {
                 return true;
             }
-        },
+        }
         _ => {
             return false;
-        },
+        }
     }
     true
 }

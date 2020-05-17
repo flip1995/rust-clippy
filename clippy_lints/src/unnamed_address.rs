@@ -59,7 +59,12 @@ impl LateLintPass<'_, '_> for UnnamedAddress {
     fn check_expr(&mut self, cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
         fn is_comparison(binop: BinOpKind) -> bool {
             match binop {
-                BinOpKind::Eq | BinOpKind::Lt | BinOpKind::Le | BinOpKind::Ne | BinOpKind::Ge | BinOpKind::Gt => true,
+                BinOpKind::Eq
+                | BinOpKind::Lt
+                | BinOpKind::Le
+                | BinOpKind::Ne
+                | BinOpKind::Ge
+                | BinOpKind::Gt => true,
                 _ => false,
             }
         }
@@ -72,11 +77,7 @@ impl LateLintPass<'_, '_> for UnnamedAddress {
         }
 
         fn is_fn_def(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
-            if let ty::FnDef(..) = cx.tables.expr_ty(expr).kind {
-                true
-            } else {
-                false
-            }
+            if let ty::FnDef(..) = cx.tables.expr_ty(expr).kind { true } else { false }
         }
 
         if_chain! {

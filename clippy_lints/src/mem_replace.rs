@@ -1,6 +1,6 @@
 use crate::utils::{
-    in_macro, match_def_path, match_qpath, paths, snippet, snippet_with_applicability, span_lint_and_help,
-    span_lint_and_sugg, span_lint_and_then,
+    in_macro, match_def_path, match_qpath, paths, snippet, snippet_with_applicability,
+    span_lint_and_help, span_lint_and_sugg, span_lint_and_then,
 };
 use if_chain::if_chain;
 use rustc_errors::Applicability;
@@ -97,7 +97,12 @@ declare_clippy_lint! {
 declare_lint_pass!(MemReplace =>
     [MEM_REPLACE_OPTION_WITH_NONE, MEM_REPLACE_WITH_UNINIT, MEM_REPLACE_WITH_DEFAULT]);
 
-fn check_replace_option_with_none(cx: &LateContext<'_, '_>, src: &Expr<'_>, dest: &Expr<'_>, expr_span: Span) {
+fn check_replace_option_with_none(
+    cx: &LateContext<'_, '_>,
+    src: &Expr<'_>,
+    dest: &Expr<'_>,
+    expr_span: Span,
+) {
     if let ExprKind::Path(ref replacement_qpath) = src.kind {
         // Check that second argument is `Option::None`
         if match_qpath(replacement_qpath, &paths::OPTION_NONE) {
@@ -108,12 +113,13 @@ fn check_replace_option_with_none(cx: &LateContext<'_, '_>, src: &Expr<'_>, dest
             // replacee's path.
             let replaced_path = match dest.kind {
                 ExprKind::AddrOf(BorrowKind::Ref, Mutability::Mut, ref replaced) => {
-                    if let ExprKind::Path(QPath::Resolved(None, ref replaced_path)) = replaced.kind {
+                    if let ExprKind::Path(QPath::Resolved(None, ref replaced_path)) = replaced.kind
+                    {
                         replaced_path
                     } else {
                         return;
                     }
-                },
+                }
                 ExprKind::Path(QPath::Resolved(None, ref replaced_path)) => replaced_path,
                 _ => return,
             };
@@ -167,7 +173,12 @@ fn check_replace_with_uninit(cx: &LateContext<'_, '_>, src: &Expr<'_>, expr_span
     }
 }
 
-fn check_replace_with_default(cx: &LateContext<'_, '_>, src: &Expr<'_>, dest: &Expr<'_>, expr_span: Span) {
+fn check_replace_with_default(
+    cx: &LateContext<'_, '_>,
+    src: &Expr<'_>,
+    dest: &Expr<'_>,
+    expr_span: Span,
+) {
     if let ExprKind::Call(ref repl_func, _) = src.kind {
         if_chain! {
             if !in_external_macro(cx.tcx.sess, expr_span);

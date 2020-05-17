@@ -15,11 +15,7 @@ struct AnotherStruct {
 
 impl Clone for AnotherStruct {
     fn clone(&self) -> AnotherStruct {
-        AnotherStruct {
-            x: self.x,
-            y: self.y,
-            z: self.z.clone(),
-        }
+        AnotherStruct { x: self.x, y: self.y, z: self.z.clone() }
     }
 }
 
@@ -42,11 +38,7 @@ fn main() {
     forget(s4);
     forget(s5);
 
-    let a1 = AnotherStruct {
-        x: 255,
-        y: 0,
-        z: vec![1, 2, 3],
-    };
+    let a1 = AnotherStruct { x: 255, y: 0, z: vec![1, 2, 3] };
     let a2 = &a1;
     let mut a3 = a1.clone();
     let ref a4 = a1;

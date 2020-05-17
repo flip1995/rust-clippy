@@ -33,9 +33,7 @@ pub struct CognitiveComplexity {
 impl CognitiveComplexity {
     #[must_use]
     pub fn new(limit: u64) -> Self {
-        Self {
-            limit: LimitStack::new(limit),
-        }
+        Self { limit: LimitStack::new(limit) }
     }
 }
 
@@ -93,7 +91,7 @@ impl CognitiveComplexity {
                     } else {
                         return;
                     }
-                },
+                }
             };
 
             span_lint_and_help(
@@ -152,9 +150,9 @@ impl<'tcx> Visitor<'tcx> for CCHelper {
                     self.cc += 1;
                 }
                 self.cc += arms.iter().filter(|arm| arm.guard.is_some()).count() as u64;
-            },
+            }
             ExprKind::Ret(_) => self.returns += 1,
-            _ => {},
+            _ => {}
         }
     }
     fn nested_visit_map(&mut self) -> NestedVisitorMap<Self::Map> {

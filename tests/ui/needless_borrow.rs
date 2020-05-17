@@ -24,7 +24,7 @@ fn main() {
         45 => {
             println!("foo");
             &&a // FIXME: this should lint, too
-        },
+        }
         46 => &&a,
         _ => panic!(),
     };

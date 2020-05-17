@@ -250,13 +250,14 @@ impl LiteralDigitGrouping {
             return true;
         }
 
-        let (part, mistyped_suffixes, missing_char) = if let Some((_, exponent)) = &mut num_lit.exponent {
-            (exponent, &["32", "64"][..], 'f')
-        } else if let Some(fraction) = &mut num_lit.fraction {
-            (fraction, &["32", "64"][..], 'f')
-        } else {
-            (&mut num_lit.integer, &["8", "16", "32", "64"][..], 'i')
-        };
+        let (part, mistyped_suffixes, missing_char) =
+            if let Some((_, exponent)) = &mut num_lit.exponent {
+                (exponent, &["32", "64"][..], 'f')
+            } else if let Some(fraction) = &mut num_lit.fraction {
+                (fraction, &["32", "64"][..], 'f')
+            } else {
+                (&mut num_lit.integer, &["8", "16", "32", "64"][..], 'i')
+            };
 
         let mut split = part.rsplit('_');
         let last_group = split.next().expect("At least one group");
@@ -319,7 +320,9 @@ impl LiteralDigitGrouping {
 
     /// Returns the size of the digit groups (or None if ungrouped) if successful,
     /// otherwise returns a `WarningType` for linting.
-    fn get_group_size<'a>(groups: impl Iterator<Item = &'a str>) -> Result<Option<usize>, WarningType> {
+    fn get_group_size<'a>(
+        groups: impl Iterator<Item = &'a str>,
+    ) -> Result<Option<usize>, WarningType> {
         let mut groups = groups.map(str::len);
 
         let first = groups.next().expect("At least one group");

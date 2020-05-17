@@ -50,13 +50,7 @@ fn consume_units_with_for_loop() {
 fn multiline_sugg() {
     let v: Vec<u8> = vec![2];
 
-    let _ = v
-        .into_iter()
-        .map(|i| i * 2)
-        .filter(|i| i % 2 == 0)
-        .map(|_| ())
-        .next()
-        .unwrap();
+    let _ = v.into_iter().map(|i| i * 2).filter(|i| i % 2 == 0).map(|_| ()).next().unwrap();
 }
 
 #[derive(Copy, Clone)]

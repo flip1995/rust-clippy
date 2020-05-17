@@ -55,7 +55,7 @@ fn main() {
             _ => {
                 let _z = 1;
                 break;
-            },
+            }
         };
     }
 
@@ -100,7 +100,7 @@ fn issue1017() {
             Ok(length) => {
                 len = length;
                 break;
-            },
+            }
         }
     }
 }

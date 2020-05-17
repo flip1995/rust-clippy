@@ -2,7 +2,9 @@ use rustc_hir::{BorrowKind, Expr, ExprKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 
-use crate::utils::{get_trait_def_id, higher, implements_trait, match_qpath, match_type, paths, span_lint};
+use crate::utils::{
+    get_trait_def_id, higher, implements_trait, match_qpath, match_type, paths, span_lint,
+};
 
 declare_clippy_lint! {
     /// **What it does:** Checks for iteration that is guaranteed to be infinite.
@@ -51,7 +53,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for InfiniteIter {
             MaybeInfinite => (MAYBE_INFINITE_ITER, "possible infinite iteration detected"),
             Finite => {
                 return;
-            },
+            }
         };
         span_lint(cx, lint, expr.span, msg)
     }
@@ -89,11 +91,7 @@ impl Finiteness {
 impl From<bool> for Finiteness {
     #[must_use]
     fn from(b: bool) -> Self {
-        if b {
-            Infinite
-        } else {
-            Finite
-        }
+        if b { Infinite } else { Finite }
     }
 }
 
@@ -161,7 +159,7 @@ fn is_infinite(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Finiteness {
                 }
             }
             Finite
-        },
+        }
         ExprKind::Block(ref block, _) => block.expr.as_ref().map_or(Finite, |e| is_infinite(cx, e)),
         ExprKind::Box(ref e) | ExprKind::AddrOf(BorrowKind::Ref, _, ref e) => is_infinite(cx, e),
         ExprKind::Call(ref path, _) => {
@@ -170,7 +168,7 @@ fn is_infinite(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Finiteness {
             } else {
                 Finite
             }
-        },
+        }
         ExprKind::Struct(..) => higher::range(cx, expr).map_or(false, |r| r.end.is_none()).into(),
         _ => Finite,
     }
@@ -178,14 +176,8 @@ fn is_infinite(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Finiteness {
 
 /// the names and argument lengths of methods that *may* exhaust their
 /// iterators
-const POSSIBLY_COMPLETING_METHODS: [(&str, usize); 6] = [
-    ("find", 2),
-    ("rfind", 2),
-    ("position", 2),
-    ("rposition", 2),
-    ("any", 2),
-    ("all", 2),
-];
+const POSSIBLY_COMPLETING_METHODS: [(&str, usize); 6] =
+    [("find", 2), ("rfind", 2), ("position", 2), ("rposition", 2), ("any", 2), ("all", 2)];
 
 /// the names and argument lengths of methods that *always* exhaust
 /// their iterators
@@ -231,7 +223,9 @@ fn complete_infinite_iter(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Finitene
             }
             if method.ident.name == sym!(last) && args.len() == 1 {
                 let not_double_ended = get_trait_def_id(cx, &paths::DOUBLE_ENDED_ITERATOR)
-                    .map_or(false, |id| !implements_trait(cx, cx.tables.expr_ty(&args[0]), id, &[]));
+                    .map_or(false, |id| {
+                        !implements_trait(cx, cx.tables.expr_ty(&args[0]), id, &[])
+                    });
                 if not_double_ended {
                     return is_infinite(cx, &args[0]);
                 }
@@ -241,12 +235,12 @@ fn complete_infinite_iter(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Finitene
                     return is_infinite(cx, &args[0]);
                 }
             }
-        },
+        }
         ExprKind::Binary(op, ref l, ref r) => {
             if op.node.is_comparison() {
                 return is_infinite(cx, l).and(is_infinite(cx, r)).and(MaybeInfinite);
             }
-        }, // TODO: ExprKind::Loop + Match
+        } // TODO: ExprKind::Loop + Match
         _ => (),
     }
     Finite

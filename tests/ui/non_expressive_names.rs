@@ -37,8 +37,8 @@ fn issue2927() {
 
 fn issue3078() {
     match "a" {
-        stringify!(a) => {},
-        _ => {},
+        stringify!(a) => {}
+        _ => {}
     }
 }
 

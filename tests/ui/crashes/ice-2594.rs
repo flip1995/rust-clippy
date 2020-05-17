@@ -13,7 +13,7 @@ fn spanless_hash_ice() {
     match txt {
         "something" => {
             let mut headers = [empty_header; 1];
-        },
+        }
         "" => (),
         _ => (),
     }

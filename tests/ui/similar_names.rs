@@ -45,12 +45,12 @@ fn main() {
     let coke: i32;
 
     match 5 {
-        cheese @ 1 => {},
+        cheese @ 1 => {}
         rabbit => panic!(),
     }
     let cheese: i32;
     match (42, 43) {
-        (cheese1, 1) => {},
+        (cheese1, 1) => {}
         (cheese2, 2) => panic!(),
         _ => println!(""),
     }
@@ -76,10 +76,7 @@ fn main() {
 
 fn foo() {
     let Foo { apple, bpple } = unimplemented!();
-    let Foo {
-        apple: spring,
-        bpple: sprang,
-    } = unimplemented!();
+    let Foo { apple: spring, bpple: sprang } = unimplemented!();
 }
 
 // false positive similar_names (#3057, #2651)

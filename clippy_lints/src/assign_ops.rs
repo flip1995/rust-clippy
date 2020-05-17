@@ -1,5 +1,6 @@
 use crate::utils::{
-    get_trait_def_id, implements_trait, snippet_opt, span_lint_and_then, trait_ref_of_method, SpanlessEq,
+    get_trait_def_id, implements_trait, snippet_opt, span_lint_and_then, trait_ref_of_method,
+    SpanlessEq,
 };
 use crate::utils::{higher, sugg};
 use if_chain::if_chain;
@@ -74,7 +75,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for AssignOps {
                         lint_misrefactored_assign_op(cx, expr, *op, rhs, lhs, l);
                     }
                 }
-            },
+            }
             hir::ExprKind::Assign(assignee, e, _) => {
                 if let hir::ExprKind::Binary(op, l, r) = &e.kind {
                     let lint = |assignee: &hir::Expr<'_>, rhs: &hir::Expr<'_>| {
@@ -147,11 +148,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for AssignOps {
                         }
                     };
 
-                    let mut visitor = ExprVisitor {
-                        assignee,
-                        counter: 0,
-                        cx,
-                    };
+                    let mut visitor = ExprVisitor { assignee, counter: 0, cx };
 
                     walk_expr(&mut visitor, e);
 
@@ -174,14 +171,14 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for AssignOps {
                                 | hir::BinOpKind::BitAnd
                                 | hir::BinOpKind::BitOr => {
                                     lint(assignee, l);
-                                },
-                                _ => {},
+                                }
+                                _ => {}
                             }
                         }
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -200,10 +197,13 @@ fn lint_misrefactored_assign_op(
         expr.span,
         "variable appears on both sides of an assignment operation",
         |diag| {
-            if let (Some(snip_a), Some(snip_r)) = (snippet_opt(cx, assignee.span), snippet_opt(cx, rhs_other.span)) {
+            if let (Some(snip_a), Some(snip_r)) =
+                (snippet_opt(cx, assignee.span), snippet_opt(cx, rhs_other.span))
+            {
                 let a = &sugg::Sugg::hir(cx, assignee, "..");
                 let r = &sugg::Sugg::hir(cx, rhs, "..");
-                let long = format!("{} = {}", snip_a, sugg::make_binop(higher::binop(op.node), a, r));
+                let long =
+                    format!("{} = {}", snip_a, sugg::make_binop(higher::binop(op.node), a, r));
                 diag.span_suggestion(
                     expr.span,
                     &format!(

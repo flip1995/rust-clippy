@@ -50,12 +50,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnusedIoAmount {
                 } else {
                     check_method_call(cx, res, expr);
                 }
-            },
+            }
 
             hir::ExprKind::MethodCall(ref path, _, ref args) => match &*path.ident.as_str() {
                 "expect" | "unwrap" | "unwrap_or" | "unwrap_or_else" => {
                     check_method_call(cx, &args[0], expr);
-                },
+                }
                 _ => (),
             },
 
@@ -77,14 +77,18 @@ fn check_method_call(cx: &LateContext<'_, '_>, call: &hir::Expr<'_>, expr: &hir:
                 expr.span,
                 "read amount is not handled. Use `Read::read_exact` instead",
             ),
-            (true, _, "read_vectored") => span_lint(cx, UNUSED_IO_AMOUNT, expr.span, "read amount is not handled"),
+            (true, _, "read_vectored") => {
+                span_lint(cx, UNUSED_IO_AMOUNT, expr.span, "read amount is not handled")
+            }
             (_, true, "write") => span_lint(
                 cx,
                 UNUSED_IO_AMOUNT,
                 expr.span,
                 "written amount is not handled. Use `Write::write_all` instead",
             ),
-            (_, true, "write_vectored") => span_lint(cx, UNUSED_IO_AMOUNT, expr.span, "written amount is not handled"),
+            (_, true, "write_vectored") => {
+                span_lint(cx, UNUSED_IO_AMOUNT, expr.span, "written amount is not handled")
+            }
             _ => (),
         }
     }

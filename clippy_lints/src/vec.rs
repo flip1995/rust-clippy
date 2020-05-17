@@ -60,7 +60,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UselessVec {
     }
 }
 
-fn check_vec_macro<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, vec_args: &higher::VecArgs<'tcx>, span: Span) {
+fn check_vec_macro<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    vec_args: &higher::VecArgs<'tcx>,
+    span: Span,
+) {
     let mut applicability = Applicability::MachineApplicable;
     let snippet = match *vec_args {
         higher::VecArgs::Repeat(elem, len) => {
@@ -73,7 +77,7 @@ fn check_vec_macro<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, vec_args: &higher::VecA
             } else {
                 return;
             }
-        },
+        }
         higher::VecArgs::Vec(args) => {
             if let Some(last) = args.iter().last() {
                 let span = args[0].span.to(last.span);
@@ -82,7 +86,7 @@ fn check_vec_macro<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, vec_args: &higher::VecA
             } else {
                 "&[]".into()
             }
-        },
+        }
     };
 
     span_lint_and_sugg(

@@ -69,9 +69,7 @@ fn main() {
     {
         get_number()
     };
-    FooString {
-        s: String::from("blah"),
-    };
+    FooString { s: String::from("blah") };
 
     // Do not warn
     DropTuple(get_number());

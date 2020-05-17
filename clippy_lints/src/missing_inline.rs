@@ -56,7 +56,12 @@ declare_clippy_lint! {
     "detects missing `#[inline]` attribute for public callables (functions, trait methods, methods...)"
 }
 
-fn check_missing_inline_attrs(cx: &LateContext<'_, '_>, attrs: &[ast::Attribute], sp: Span, desc: &'static str) {
+fn check_missing_inline_attrs(
+    cx: &LateContext<'_, '_>,
+    attrs: &[ast::Attribute],
+    sp: Span,
+    desc: &'static str,
+) {
     let has_inline = attrs.iter().any(|a| a.check_name(sym!(inline)));
     if !has_inline {
         span_lint(
@@ -92,14 +97,20 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingInline {
             hir::ItemKind::Fn(..) => {
                 let desc = "a function";
                 check_missing_inline_attrs(cx, &it.attrs, it.span, desc);
-            },
-            hir::ItemKind::Trait(ref _is_auto, ref _unsafe, ref _generics, ref _bounds, trait_items) => {
+            }
+            hir::ItemKind::Trait(
+                ref _is_auto,
+                ref _unsafe,
+                ref _generics,
+                ref _bounds,
+                trait_items,
+            ) => {
                 // note: we need to check if the trait is exported so we can't use
                 // `LateLintPass::check_trait_item` here.
                 for tit in trait_items {
                     let tit_ = cx.tcx.hir().trait_item(tit.id);
                     match tit_.kind {
-                        hir::TraitItemKind::Const(..) | hir::TraitItemKind::Type(..) => {},
+                        hir::TraitItemKind::Const(..) | hir::TraitItemKind::Type(..) => {}
                         hir::TraitItemKind::Fn(..) => {
                             if tit.defaultness.has_value() {
                                 // trait method with default body needs inline in case
@@ -108,10 +119,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingInline {
                                 let item = cx.tcx.hir().expect_trait_item(tit.id.hir_id);
                                 check_missing_inline_attrs(cx, &item.attrs, item.span, desc);
                             }
-                        },
+                        }
                     }
                 }
-            },
+            }
             hir::ItemKind::Const(..)
             | hir::ItemKind::Enum(..)
             | hir::ItemKind::Mod(..)
@@ -125,7 +136,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingInline {
             | hir::ItemKind::ExternCrate(..)
             | hir::ItemKind::ForeignMod(..)
             | hir::ItemKind::Impl { .. }
-            | hir::ItemKind::Use(..) => {},
+            | hir::ItemKind::Use(..) => {}
         };
     }
 
@@ -142,7 +153,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingInline {
 
         let desc = match impl_item.kind {
             hir::ImplItemKind::Fn(..) => "a method",
-            hir::ImplItemKind::Const(..) | hir::ImplItemKind::TyAlias(_) | hir::ImplItemKind::OpaqueTy(_) => return,
+            hir::ImplItemKind::Const(..)
+            | hir::ImplItemKind::TyAlias(_)
+            | hir::ImplItemKind::OpaqueTy(_) => return,
         };
 
         let def_id = cx.tcx.hir().local_def_id(impl_item.hir_id);

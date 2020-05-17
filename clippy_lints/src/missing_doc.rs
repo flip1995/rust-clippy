@@ -46,9 +46,7 @@ impl Default for MissingDoc {
 impl MissingDoc {
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            doc_hidden_stack: vec![false],
-        }
+        Self { doc_hidden_stack: vec![false] }
     }
 
     fn doc_hidden(&self) -> bool {
@@ -91,9 +89,12 @@ impl MissingDoc {
             return;
         }
 
-        let has_doc = attrs
-            .iter()
-            .any(|a| a.is_doc_comment() || a.doc_str().is_some() || a.is_value_str() || Self::has_include(a.meta()));
+        let has_doc = attrs.iter().any(|a| {
+            a.is_doc_comment()
+                || a.doc_str().is_some()
+                || a.is_value_str()
+                || Self::has_include(a.meta())
+        });
         if !has_doc {
             span_lint(
                 cx,
@@ -142,7 +143,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingDoc {
                     }
                 }
                 "a function"
-            },
+            }
             hir::ItemKind::Mod(..) => "a module",
             hir::ItemKind::Static(..) => "a static",
             hir::ItemKind::Struct(..) => "a struct",
@@ -161,7 +162,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingDoc {
         self.check_missing_docs_attrs(cx, &it.attrs, it.span, desc);
     }
 
-    fn check_trait_item(&mut self, cx: &LateContext<'a, 'tcx>, trait_item: &'tcx hir::TraitItem<'_>) {
+    fn check_trait_item(
+        &mut self,
+        cx: &LateContext<'a, 'tcx>,
+        trait_item: &'tcx hir::TraitItem<'_>,
+    ) {
         let desc = match trait_item.kind {
             hir::TraitItemKind::Const(..) => "an associated constant",
             hir::TraitItemKind::Fn(..) => "a trait method",
@@ -180,7 +185,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingDoc {
                 if cx.tcx.impl_trait_ref(cid).is_some() {
                     return;
                 }
-            },
+            }
         }
 
         let desc = match impl_item.kind {

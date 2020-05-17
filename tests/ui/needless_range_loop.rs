@@ -75,9 +75,7 @@ fn main() {
     }
 
     // #3788
-    let test = Test {
-        inner: vec![1, 2, 3, 4],
-    };
+    let test = Test { inner: vec![1, 2, 3, 4] };
     for i in 0..2 {
         println!("{}", test[i]);
     }

@@ -7,8 +7,8 @@ use rustc_middle::ty::{self, Ty};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 
 use crate::utils::{
-    implements_trait, is_adjusted, iter_input_pats, snippet_opt, span_lint_and_sugg, span_lint_and_then,
-    type_is_unsafe_function,
+    implements_trait, is_adjusted, iter_input_pats, snippet_opt, span_lint_and_sugg,
+    span_lint_and_then, type_is_unsafe_function,
 };
 
 declare_clippy_lint! {
@@ -71,7 +71,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for EtaReduction {
                 for arg in args {
                     check_closure(cx, arg)
                 }
-            },
+            }
             _ => (),
         }
     }
@@ -147,7 +147,11 @@ fn check_closure(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
 }
 
 /// Tries to determine the type for universal function call to be used instead of the closure
-fn get_ufcs_type_name(cx: &LateContext<'_, '_>, method_def_id: def_id::DefId, self_arg: &Expr<'_>) -> Option<String> {
+fn get_ufcs_type_name(
+    cx: &LateContext<'_, '_>,
+    method_def_id: def_id::DefId,
+    self_arg: &Expr<'_>,
+) -> Option<String> {
     let expected_type_of_self = &cx.tcx.fn_sig(method_def_id).inputs_and_output().skip_binder()[0];
     let actual_type_of_self = &cx.tables.node_type(self_arg.hir_id);
 
@@ -170,7 +174,9 @@ fn get_ufcs_type_name(cx: &LateContext<'_, '_>, method_def_id: def_id::DefId, se
 
 fn match_borrow_depth(lhs: Ty<'_>, rhs: Ty<'_>) -> bool {
     match (&lhs.kind, &rhs.kind) {
-        (ty::Ref(_, t1, mut1), ty::Ref(_, t2, mut2)) => mut1 == mut2 && match_borrow_depth(&t1, &t2),
+        (ty::Ref(_, t1, mut1), ty::Ref(_, t2, mut2)) => {
+            mut1 == mut2 && match_borrow_depth(&t1, &t2)
+        }
         (l, r) => match (l, r) {
             (ty::Ref(_, _, _), _) | (_, ty::Ref(_, _, _)) => false,
             (_, _) => true,
@@ -186,7 +192,9 @@ fn match_types(lhs: Ty<'_>, rhs: Ty<'_>) -> bool {
         | (ty::Uint(_), ty::Uint(_))
         | (ty::Str, ty::Str) => true,
         (ty::Ref(_, t1, mut1), ty::Ref(_, t2, mut2)) => mut1 == mut2 && match_types(t1, t2),
-        (ty::Array(t1, _), ty::Array(t2, _)) | (ty::Slice(t1), ty::Slice(t2)) => match_types(t1, t2),
+        (ty::Array(t1, _), ty::Array(t2, _)) | (ty::Slice(t1), ty::Slice(t2)) => {
+            match_types(t1, t2)
+        }
         (ty::Adt(def1, _), ty::Adt(def2, _)) => def1 == def2,
         (_, _) => false,
     }

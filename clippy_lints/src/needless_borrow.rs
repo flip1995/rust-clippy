@@ -5,7 +5,9 @@
 use crate::utils::{snippet_opt, span_lint_and_then};
 use if_chain::if_chain;
 use rustc_errors::Applicability;
-use rustc_hir::{BindingAnnotation, BorrowKind, Expr, ExprKind, HirId, Item, Mutability, Pat, PatKind};
+use rustc_hir::{
+    BindingAnnotation, BorrowKind, Expr, ExprKind, HirId, Item, Mutability, Pat, PatKind,
+};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
 use rustc_middle::ty::adjustment::{Adjust, Adjustment};
@@ -44,14 +46,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBorrow {
         if let ExprKind::AddrOf(BorrowKind::Ref, Mutability::Not, ref inner) = e.kind {
             if let ty::Ref(..) = cx.tables.expr_ty(inner).kind {
                 for adj3 in cx.tables.expr_adjustments(e).windows(3) {
-                    if let [Adjustment {
-                        kind: Adjust::Deref(_), ..
-                    }, Adjustment {
-                        kind: Adjust::Deref(_), ..
-                    }, Adjustment {
-                        kind: Adjust::Borrow(_),
-                        ..
-                    }] = *adj3
+                    if let [Adjustment { kind: Adjust::Deref(_), .. }, Adjustment { kind: Adjust::Deref(_), .. }, Adjustment { kind: Adjust::Borrow(_), .. }] =
+                        *adj3
                     {
                         span_lint_and_then(
                             cx,

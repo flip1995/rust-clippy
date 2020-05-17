@@ -41,17 +41,19 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for IdentityOp {
                 BinOpKind::Add | BinOpKind::BitOr | BinOpKind::BitXor => {
                     check(cx, left, 0, e.span, right.span);
                     check(cx, right, 0, e.span, left.span);
-                },
-                BinOpKind::Shl | BinOpKind::Shr | BinOpKind::Sub => check(cx, right, 0, e.span, left.span),
+                }
+                BinOpKind::Shl | BinOpKind::Shr | BinOpKind::Sub => {
+                    check(cx, right, 0, e.span, left.span)
+                }
                 BinOpKind::Mul => {
                     check(cx, left, 1, e.span, right.span);
                     check(cx, right, 1, e.span, left.span);
-                },
+                }
                 BinOpKind::Div => check(cx, right, 1, e.span, left.span),
                 BinOpKind::BitAnd => {
                     check(cx, left, -1, e.span, right.span);
                     check(cx, right, -1, e.span, left.span);
-                },
+                }
                 _ => (),
             }
         }

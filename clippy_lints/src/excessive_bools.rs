@@ -88,10 +88,7 @@ pub struct ExcessiveBools {
 impl ExcessiveBools {
     #[must_use]
     pub fn new(max_struct_bools: u64, max_fn_params_bools: u64) -> Self {
-        Self {
-            max_struct_bools,
-            max_fn_params_bools,
-        }
+        Self { max_struct_bools, max_fn_params_bools }
     }
 
     fn check_fn_sig(&self, cx: &EarlyContext<'_>, fn_sig: &FnSig, span: Span) {
@@ -158,17 +155,14 @@ impl EarlyLintPass for ExcessiveBools {
                         "consider using a state machine or refactoring bools into two-variant enums",
                     );
                 }
-            },
-            ItemKind::Impl {
-                of_trait: None, items, ..
             }
-            | ItemKind::Trait(_, _, _, _, items) => {
+            ItemKind::Impl { of_trait: None, items, .. } | ItemKind::Trait(_, _, _, _, items) => {
                 for item in items {
                     if let AssocItemKind::Fn(_, fn_sig, _, _) = &item.kind {
                         self.check_fn_sig(cx, fn_sig, item.span);
                     }
                 }
-            },
+            }
             ItemKind::Fn(_, fn_sig, _, _) => self.check_fn_sig(cx, fn_sig, item.span),
             _ => (),
         }

@@ -19,8 +19,8 @@ pub(super) fn lint(cx: &LateContext<'_, '_>, expr: &hir::Expr<'_>, args: &[hir::
     if let hir::ExprKind::Closure(_, _, body_id, ..) = args[1].kind {
         let body = cx.tcx.hir().body(body_id);
         let arg_id = body.params[0].pat.hir_id;
-        let mutates_arg =
-            mutated_variables(&body.value, cx).map_or(true, |used_mutably| used_mutably.contains(&arg_id));
+        let mutates_arg = mutated_variables(&body.value, cx)
+            .map_or(true, |used_mutably| used_mutably.contains(&arg_id));
 
         let (mut found_mapping, mut found_filtering) = check_expression(&cx, arg_id, &body.value);
 
@@ -80,14 +80,14 @@ fn check_expression<'a, 'tcx>(
                 }
             }
             (true, true)
-        },
+        }
         hir::ExprKind::Block(ref block, _) => {
             if let Some(expr) = &block.expr {
                 check_expression(cx, arg_id, &expr)
             } else {
                 (false, false)
             }
-        },
+        }
         hir::ExprKind::Match(_, arms, _) => {
             let mut found_mapping = false;
             let mut found_filtering = false;
@@ -97,7 +97,7 @@ fn check_expression<'a, 'tcx>(
                 found_filtering |= f;
             }
             (found_mapping, found_filtering)
-        },
+        }
         hir::ExprKind::Path(path) if match_qpath(path, &paths::OPTION_NONE) => (false, true),
         _ => (true, true),
     }
@@ -114,12 +114,7 @@ struct ReturnVisitor<'a, 'tcx> {
 
 impl<'a, 'tcx> ReturnVisitor<'a, 'tcx> {
     fn new(cx: &'a LateContext<'a, 'tcx>, arg_id: hir::HirId) -> ReturnVisitor<'a, 'tcx> {
-        ReturnVisitor {
-            cx,
-            arg_id,
-            found_mapping: false,
-            found_filtering: false,
-        }
+        ReturnVisitor { cx, arg_id, found_mapping: false, found_filtering: false }
     }
 }
 

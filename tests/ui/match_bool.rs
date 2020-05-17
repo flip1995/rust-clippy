@@ -18,30 +18,30 @@ fn match_bool() {
         true => (),
         false => {
             println!("Noooo!");
-        },
+        }
     };
 
     match test {
         false => {
             println!("Noooo!");
-        },
+        }
         _ => (),
     };
 
     match test && test {
         false => {
             println!("Noooo!");
-        },
+        }
         _ => (),
     };
 
     match test {
         false => {
             println!("Noooo!");
-        },
+        }
         true => {
             println!("Yes!");
-        },
+        }
     };
 
     // Not linted

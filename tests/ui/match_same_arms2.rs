@@ -16,7 +16,7 @@ fn match_same_arms() {
             }
             a = -31 - a;
             a
-        },
+        }
         _ => {
             //~ ERROR match arms have same body
             foo();
@@ -26,7 +26,7 @@ fn match_same_arms() {
             }
             a = -31 - a;
             a
-        },
+        }
     };
 
     let _ = match 42 {
@@ -117,7 +117,7 @@ fn match_same_arms() {
         Ok(_) => println!("ok"),
         Err(_) => {
             unreachable!();
-        },
+        }
     }
 }
 

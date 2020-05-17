@@ -2,8 +2,8 @@ use crate::reexport::Name;
 use crate::utils::{contains_name, higher, iter_input_pats, snippet, span_lint_and_then};
 use rustc_hir::intravisit::FnKind;
 use rustc_hir::{
-    Block, Body, Expr, ExprKind, FnDecl, Guard, HirId, Local, MutTy, Pat, PatKind, Path, QPath, StmtKind, Ty, TyKind,
-    UnOp,
+    Block, Body, Expr, ExprKind, FnDecl, Guard, HirId, Local, MutTy, Pat, PatKind, Path, QPath,
+    StmtKind, Ty, TyKind, UnOp,
 };
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::lint::in_external_macro;
@@ -113,13 +113,17 @@ fn check_fn<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, decl: &'tcx FnDecl<'_>, body: 
     check_expr(cx, &body.value, &mut bindings);
 }
 
-fn check_block<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, block: &'tcx Block<'_>, bindings: &mut Vec<(Name, Span)>) {
+fn check_block<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    block: &'tcx Block<'_>,
+    bindings: &mut Vec<(Name, Span)>,
+) {
     let len = bindings.len();
     for stmt in block.stmts {
         match stmt.kind {
             StmtKind::Local(ref local) => check_local(cx, local, bindings),
             StmtKind::Expr(ref e) | StmtKind::Semi(ref e) => check_expr(cx, e, bindings),
-            StmtKind::Item(..) => {},
+            StmtKind::Item(..) => {}
         }
     }
     if let Some(ref o) = block.expr {
@@ -128,20 +132,18 @@ fn check_block<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, block: &'tcx Block<'_>, bin
     bindings.truncate(len);
 }
 
-fn check_local<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, local: &'tcx Local<'_>, bindings: &mut Vec<(Name, Span)>) {
+fn check_local<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    local: &'tcx Local<'_>,
+    bindings: &mut Vec<(Name, Span)>,
+) {
     if in_external_macro(cx.sess(), local.span) {
         return;
     }
     if higher::is_from_for_desugar(local) {
         return;
     }
-    let Local {
-        ref pat,
-        ref ty,
-        ref init,
-        span,
-        ..
-    } = *local;
+    let Local { ref pat, ref ty, ref init, span, .. } = *local;
     if let Some(ref t) = *ty {
         check_ty(cx, t, bindings)
     }
@@ -193,7 +195,7 @@ fn check_pat<'a, 'tcx>(
             if let Some(ref p) = *inner {
                 check_pat(cx, p, init, span, bindings);
             }
-        },
+        }
         PatKind::Struct(_, pfields, _) => {
             if let Some(init_struct) = init {
                 if let ExprKind::Struct(_, ref efields, _) = init_struct.kind {
@@ -214,7 +216,7 @@ fn check_pat<'a, 'tcx>(
                     check_pat(cx, &field.pat, None, span, bindings);
                 }
             }
-        },
+        }
         PatKind::Tuple(inner, _) => {
             if let Some(init_tup) = init {
                 if let ExprKind::Tup(ref tup) = init_tup.kind {
@@ -231,7 +233,7 @@ fn check_pat<'a, 'tcx>(
                     check_pat(cx, p, None, span, bindings);
                 }
             }
-        },
+        }
         PatKind::Box(ref inner) => {
             if let Some(initp) = init {
                 if let ExprKind::Box(ref inner_init) = initp.kind {
@@ -242,7 +244,7 @@ fn check_pat<'a, 'tcx>(
             } else {
                 check_pat(cx, inner, init, span, bindings);
             }
-        },
+        }
         PatKind::Ref(ref inner, _) => check_pat(cx, inner, init, span, bindings),
         // PatVec(Vec<P<Pat>>, Option<P<Pat>>, Vec<P<Pat>>),
         _ => (),
@@ -316,7 +318,11 @@ fn lint_shadow<'a, 'tcx>(
     }
 }
 
-fn check_expr<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, bindings: &mut Vec<(Name, Span)>) {
+fn check_expr<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'_>,
+    bindings: &mut Vec<(Name, Span)>,
+) {
     if in_external_macro(cx.sess(), expr.span) {
         return;
     }
@@ -325,14 +331,16 @@ fn check_expr<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, bindin
         | ExprKind::Field(ref e, _)
         | ExprKind::AddrOf(_, _, ref e)
         | ExprKind::Box(ref e) => check_expr(cx, e, bindings),
-        ExprKind::Block(ref block, _) | ExprKind::Loop(ref block, _, _) => check_block(cx, block, bindings),
+        ExprKind::Block(ref block, _) | ExprKind::Loop(ref block, _, _) => {
+            check_block(cx, block, bindings)
+        }
         // ExprKind::Call
         // ExprKind::MethodCall
         ExprKind::Array(v) | ExprKind::Tup(v) => {
             for e in v {
                 check_expr(cx, e, bindings)
             }
-        },
+        }
         ExprKind::Match(ref init, arms, _) => {
             check_expr(cx, init, bindings);
             let len = bindings.len();
@@ -347,27 +355,33 @@ fn check_expr<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, bindin
                 check_expr(cx, &arm.body, bindings);
                 bindings.truncate(len);
             }
-        },
+        }
         _ => (),
     }
 }
 
-fn check_ty<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ty: &'tcx Ty<'_>, bindings: &mut Vec<(Name, Span)>) {
+fn check_ty<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    ty: &'tcx Ty<'_>,
+    bindings: &mut Vec<(Name, Span)>,
+) {
     match ty.kind {
         TyKind::Slice(ref sty) => check_ty(cx, sty, bindings),
         TyKind::Array(ref fty, ref anon_const) => {
             check_ty(cx, fty, bindings);
             check_expr(cx, &cx.tcx.hir().body(anon_const.body).value, bindings);
-        },
+        }
         TyKind::Ptr(MutTy { ty: ref mty, .. }) | TyKind::Rptr(_, MutTy { ty: ref mty, .. }) => {
             check_ty(cx, mty, bindings)
-        },
+        }
         TyKind::Tup(tup) => {
             for t in tup {
                 check_ty(cx, t, bindings)
             }
-        },
-        TyKind::Typeof(ref anon_const) => check_expr(cx, &cx.tcx.hir().body(anon_const.body).value, bindings),
+        }
+        TyKind::Typeof(ref anon_const) => {
+            check_expr(cx, &cx.tcx.hir().body(anon_const.body).value, bindings)
+        }
         _ => (),
     }
 }
@@ -377,7 +391,7 @@ fn is_self_shadow(name: Name, expr: &Expr<'_>) -> bool {
         ExprKind::Box(ref inner) | ExprKind::AddrOf(_, _, ref inner) => is_self_shadow(name, inner),
         ExprKind::Block(ref block, _) => {
             block.stmts.is_empty() && block.expr.as_ref().map_or(false, |e| is_self_shadow(name, e))
-        },
+        }
         ExprKind::Unary(op, ref inner) => (UnOp::UnDeref == op) && is_self_shadow(name, inner),
         ExprKind::Path(QPath::Resolved(_, ref path)) => path_eq_name(name, path),
         _ => false,
@@ -385,5 +399,7 @@ fn is_self_shadow(name: Name, expr: &Expr<'_>) -> bool {
 }
 
 fn path_eq_name(name: Name, path: &Path<'_>) -> bool {
-    !path.is_global() && path.segments.len() == 1 && path.segments[0].ident.as_str() == name.as_str()
+    !path.is_global()
+        && path.segments.len() == 1
+        && path.segments[0].ident.as_str() == name.as_str()
 }

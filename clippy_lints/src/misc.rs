@@ -3,8 +3,8 @@ use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;
 use rustc_hir::intravisit::FnKind;
 use rustc_hir::{
-    def, BinOpKind, BindingAnnotation, Body, Expr, ExprKind, FnDecl, HirId, Mutability, PatKind, Stmt, StmtKind, Ty,
-    TyKind, UnOp,
+    def, BinOpKind, BindingAnnotation, Body, Expr, ExprKind, FnDecl, HirId, Mutability, PatKind,
+    Stmt, StmtKind, Ty, TyKind, UnOp,
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
@@ -15,9 +15,10 @@ use rustc_span::source_map::{ExpnKind, Span};
 use crate::consts::{constant, Constant};
 use crate::utils::sugg::Sugg;
 use crate::utils::{
-    get_item_name, get_parent_expr, higher, implements_trait, in_constant, is_integer_const, iter_input_pats,
-    last_path_segment, match_qpath, match_trait_method, paths, snippet, snippet_opt, span_lint, span_lint_and_sugg,
-    span_lint_and_then, span_lint_hir_and_then, walk_ptrs_ty, SpanlessEq,
+    get_item_name, get_parent_expr, higher, implements_trait, in_constant, is_integer_const,
+    iter_input_pats, last_path_segment, match_qpath, match_trait_method, paths, snippet,
+    snippet_opt, span_lint, span_lint_and_sugg, span_lint_and_then, span_lint_hir_and_then,
+    walk_ptrs_ty, SpanlessEq,
 };
 
 declare_clippy_lint! {
@@ -249,7 +250,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
         }
         for arg in iter_input_pats(decl, body) {
             match arg.pat.kind {
-                PatKind::Binding(BindingAnnotation::Ref, ..) | PatKind::Binding(BindingAnnotation::RefMut, ..) => {
+                PatKind::Binding(BindingAnnotation::Ref, ..)
+                | PatKind::Binding(BindingAnnotation::RefMut, ..) => {
                     span_lint(
                         cx,
                         TOPLEVEL_REF_ARG,
@@ -257,8 +259,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
                         "`ref` directly on a function argument is ignored. Consider using a reference type \
                          instead.",
                     );
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
     }
@@ -341,7 +343,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
             ExprKind::Cast(ref e, ref ty) => {
                 check_cast(cx, expr.span, e, ty);
                 return;
-            },
+            }
             ExprKind::Binary(ref cmp, ref left, ref right) => {
                 let op = cmp.node;
                 if op.is_comparison() {
@@ -350,7 +352,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
                     check_to_owned(cx, left, right);
                     check_to_owned(cx, right, left);
                 }
-                if (op == BinOpKind::Eq || op == BinOpKind::Ne) && (is_float(cx, left) || is_float(cx, right)) {
+                if (op == BinOpKind::Eq || op == BinOpKind::Ne)
+                    && (is_float(cx, left) || is_float(cx, right))
+                {
                     if is_allowed(cx, left) || is_allowed(cx, right) {
                         return;
                     }
@@ -392,13 +396,15 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
                                 Applicability::HasPlaceholders, // snippet
                             );
                         }
-                        diag.note("`f32::EPSILON` and `f64::EPSILON` are available for the `error`");
+                        diag.note(
+                            "`f32::EPSILON` and `f64::EPSILON` are available for the `error`",
+                        );
                     });
                 } else if op == BinOpKind::Rem && is_integer_const(cx, right, 1) {
                     span_lint(cx, MODULO_ONE, expr.span, "any number modulo 1 will be 0");
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
         if in_attributes_expansion(expr) || expr.span.is_desugaring(DesugaringKind::Await) {
             // Don't lint things expanded by #[derive(...)], etc or `await` desugaring
@@ -418,15 +424,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MiscLints {
                 } else {
                     None
                 }
-            },
+            }
             ExprKind::Field(_, ident) => {
                 let name = ident.as_str();
-                if name.starts_with('_') && !name.starts_with("__") {
-                    Some(name)
-                } else {
-                    None
-                }
-            },
+                if name.starts_with('_') && !name.starts_with("__") { Some(name) } else { None }
+            }
             _ => None,
         };
         if let Some(binding) = binding {
@@ -493,11 +495,7 @@ fn check_nan(cx: &LateContext<'_, '_>, expr: &Expr<'_>, cmp_expr: &Expr<'_>) {
 }
 
 fn is_named_constant<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>) -> bool {
-    if let Some((_, res)) = constant(cx, cx.tables, expr) {
-        res
-    } else {
-        false
-    }
+    if let Some((_, res)) = constant(cx, cx.tables, expr) { res } else { false }
 }
 
 fn is_allowed<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>) -> bool {
@@ -549,15 +547,19 @@ fn is_array(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
 fn check_to_owned(cx: &LateContext<'_, '_>, expr: &Expr<'_>, other: &Expr<'_>) {
     let (arg_ty, snip) = match expr.kind {
         ExprKind::MethodCall(.., ref args) if args.len() == 1 => {
-            if match_trait_method(cx, expr, &paths::TO_STRING) || match_trait_method(cx, expr, &paths::TO_OWNED) {
+            if match_trait_method(cx, expr, &paths::TO_STRING)
+                || match_trait_method(cx, expr, &paths::TO_OWNED)
+            {
                 (cx.tables.expr_ty_adjusted(&args[0]), snippet(cx, args[0].span, ".."))
             } else {
                 return;
             }
-        },
+        }
         ExprKind::Call(ref path, ref v) if v.len() == 1 => {
             if let ExprKind::Path(ref path) = path.kind {
-                if match_qpath(path, &["String", "from_str"]) || match_qpath(path, &["String", "from"]) {
+                if match_qpath(path, &["String", "from_str"])
+                    || match_qpath(path, &["String", "from"])
+                {
                     (cx.tables.expr_ty_adjusted(&v[0]), snippet(cx, v[0].span, ".."))
                 } else {
                     return;
@@ -565,7 +567,7 @@ fn check_to_owned(cx: &LateContext<'_, '_>, expr: &Expr<'_>, other: &Expr<'_>) {
             } else {
                 return;
             }
-        },
+        }
         _ => return,
     };
 
@@ -575,15 +577,19 @@ fn check_to_owned(cx: &LateContext<'_, '_>, expr: &Expr<'_>, other: &Expr<'_>) {
         None => return,
     };
 
-    let deref_arg_impl_partial_eq_other = arg_ty.builtin_deref(true).map_or(false, |tam| {
-        implements_trait(cx, tam.ty, partial_eq_trait_id, &[other_ty.into()])
-    });
-    let arg_impl_partial_eq_deref_other = other_ty.builtin_deref(true).map_or(false, |tam| {
-        implements_trait(cx, arg_ty, partial_eq_trait_id, &[tam.ty.into()])
-    });
-    let arg_impl_partial_eq_other = implements_trait(cx, arg_ty, partial_eq_trait_id, &[other_ty.into()]);
+    let deref_arg_impl_partial_eq_other = arg_ty
+        .builtin_deref(true)
+        .map_or(false, |tam| implements_trait(cx, tam.ty, partial_eq_trait_id, &[other_ty.into()]));
+    let arg_impl_partial_eq_deref_other = other_ty
+        .builtin_deref(true)
+        .map_or(false, |tam| implements_trait(cx, arg_ty, partial_eq_trait_id, &[tam.ty.into()]));
+    let arg_impl_partial_eq_other =
+        implements_trait(cx, arg_ty, partial_eq_trait_id, &[other_ty.into()]);
 
-    if !deref_arg_impl_partial_eq_other && !arg_impl_partial_eq_deref_other && !arg_impl_partial_eq_other {
+    if !deref_arg_impl_partial_eq_other
+        && !arg_impl_partial_eq_deref_other
+        && !arg_impl_partial_eq_other
+    {
         return;
     }
 
@@ -592,11 +598,7 @@ fn check_to_owned(cx: &LateContext<'_, '_>, expr: &Expr<'_>, other: &Expr<'_>) {
         _ => false,
     };
 
-    let lint_span = if other_gets_derefed {
-        expr.span.to(other.span)
-    } else {
-        expr.span
-    };
+    let lint_span = if other_gets_derefed { expr.span.to(other.span) } else { expr.span };
 
     span_lint_and_then(
         cx,
@@ -636,7 +638,7 @@ fn is_used(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
         match parent.kind {
             ExprKind::Assign(_, ref rhs, _) | ExprKind::AssignOp(_, _, ref rhs) => {
                 SpanlessEq::new(cx).eq_expr(rhs, expr)
-            },
+            }
             _ => is_used(cx, parent),
         }
     } else {
@@ -651,11 +653,7 @@ fn in_attributes_expansion(expr: &Expr<'_>) -> bool {
     if expr.span.from_expansion() {
         let data = expr.span.ctxt().outer_expn_data();
 
-        if let ExpnKind::Macro(MacroKind::Attr, _) = data.kind {
-            true
-        } else {
-            false
-        }
+        if let ExpnKind::Macro(MacroKind::Attr, _) = data.kind { true } else { false }
     } else {
         false
     }
@@ -663,11 +661,7 @@ fn in_attributes_expansion(expr: &Expr<'_>) -> bool {
 
 /// Tests whether `res` is a variable defined outside a macro.
 fn non_macro_local(cx: &LateContext<'_, '_>, res: def::Res) -> bool {
-    if let def::Res::Local(id) = res {
-        !cx.tcx.hir().span(id).from_expansion()
-    } else {
-        false
-    }
+    if let def::Res::Local(id) = res { !cx.tcx.hir().span(id).from_expansion() } else { false }
 }
 
 fn check_cast(cx: &LateContext<'_, '_>, span: Span, e: &Expr<'_>, ty: &Ty<'_>) {

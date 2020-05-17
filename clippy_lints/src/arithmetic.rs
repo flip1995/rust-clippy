@@ -90,11 +90,18 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Arithmetic {
                 if l_ty.peel_refs().is_integral() && r_ty.peel_refs().is_integral() {
                     span_lint(cx, INTEGER_ARITHMETIC, expr.span, "integer arithmetic detected");
                     self.expr_span = Some(expr.span);
-                } else if l_ty.peel_refs().is_floating_point() && r_ty.peel_refs().is_floating_point() {
-                    span_lint(cx, FLOAT_ARITHMETIC, expr.span, "floating-point arithmetic detected");
+                } else if l_ty.peel_refs().is_floating_point()
+                    && r_ty.peel_refs().is_floating_point()
+                {
+                    span_lint(
+                        cx,
+                        FLOAT_ARITHMETIC,
+                        expr.span,
+                        "floating-point arithmetic detected",
+                    );
                     self.expr_span = Some(expr.span);
                 }
-            },
+            }
             hir::ExprKind::Unary(hir::UnOp::UnNeg, arg) => {
                 let ty = cx.tables.expr_ty(arg);
                 if constant_simple(cx, cx.tables, expr).is_none() {
@@ -102,11 +109,16 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Arithmetic {
                         span_lint(cx, INTEGER_ARITHMETIC, expr.span, "integer arithmetic detected");
                         self.expr_span = Some(expr.span);
                     } else if ty.is_floating_point() {
-                        span_lint(cx, FLOAT_ARITHMETIC, expr.span, "floating-point arithmetic detected");
+                        span_lint(
+                            cx,
+                            FLOAT_ARITHMETIC,
+                            expr.span,
+                            "floating-point arithmetic detected",
+                        );
                         self.expr_span = Some(expr.span);
                     }
                 }
-            },
+            }
             _ => (),
         }
     }
@@ -130,7 +142,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Arithmetic {
                     }
                 }
                 self.const_span = Some(body_span);
-            },
+            }
             hir::BodyOwnerKind::Fn | hir::BodyOwnerKind::Closure => (),
         }
     }

@@ -64,7 +64,12 @@ fn insert_from_different_map<K: Eq + Hash, V>(m: HashMap<K, V>, n: &mut HashMap<
 }
 
 // should not trigger, because the one uses different HashMap from another one
-fn insert_from_different_map2<K: Eq + Hash, V>(m: &mut HashMap<K, V>, n: &mut HashMap<K, V>, k: K, v: V) {
+fn insert_from_different_map2<K: Eq + Hash, V>(
+    m: &mut HashMap<K, V>,
+    n: &mut HashMap<K, V>,
+    k: K,
+    v: V,
+) {
     if !m.contains_key(&k) {
         n.insert(k, v);
     }

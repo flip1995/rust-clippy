@@ -34,13 +34,16 @@ use rustc_hir::def_id::{DefId, CRATE_DEF_INDEX, LOCAL_CRATE};
 use rustc_hir::intravisit::{NestedVisitorMap, Visitor};
 use rustc_hir::Node;
 use rustc_hir::{
-    def, Arm, Block, Body, Constness, Crate, Expr, ExprKind, FnDecl, HirId, ImplItem, ImplItemKind, Item, ItemKind,
-    MatchSource, Param, Pat, PatKind, Path, PathSegment, QPath, TraitItem, TraitItemKind, TraitRef, TyKind, Unsafety,
+    def, Arm, Block, Body, Constness, Crate, Expr, ExprKind, FnDecl, HirId, ImplItem, ImplItemKind,
+    Item, ItemKind, MatchSource, Param, Pat, PatKind, Path, PathSegment, QPath, TraitItem,
+    TraitItemKind, TraitRef, TyKind, Unsafety,
 };
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::{LateContext, Level, Lint, LintContext};
 use rustc_middle::hir::map::Map;
-use rustc_middle::ty::{self, layout::IntegerExt, subst::GenericArg, Binder, Ty, TyCtxt, TypeFoldable};
+use rustc_middle::ty::{
+    self, layout::IntegerExt, subst::GenericArg, Binder, Ty, TyCtxt, TypeFoldable,
+};
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 use rustc_span::source_map::original_sp;
 use rustc_span::symbol::{self, kw, Symbol};
@@ -71,31 +74,15 @@ pub fn differing_macro_contexts(lhs: Span, rhs: Span) -> bool {
 pub fn in_constant(cx: &LateContext<'_, '_>, id: HirId) -> bool {
     let parent_id = cx.tcx.hir().get_parent_item(id);
     match cx.tcx.hir().get(parent_id) {
-        Node::Item(&Item {
-            kind: ItemKind::Const(..),
-            ..
-        })
-        | Node::TraitItem(&TraitItem {
-            kind: TraitItemKind::Const(..),
-            ..
-        })
-        | Node::ImplItem(&ImplItem {
-            kind: ImplItemKind::Const(..),
-            ..
-        })
+        Node::Item(&Item { kind: ItemKind::Const(..), .. })
+        | Node::TraitItem(&TraitItem { kind: TraitItemKind::Const(..), .. })
+        | Node::ImplItem(&ImplItem { kind: ImplItemKind::Const(..), .. })
         | Node::AnonConst(_)
-        | Node::Item(&Item {
-            kind: ItemKind::Static(..),
-            ..
-        }) => true,
-        Node::Item(&Item {
-            kind: ItemKind::Fn(ref sig, ..),
-            ..
-        })
-        | Node::ImplItem(&ImplItem {
-            kind: ImplItemKind::Fn(ref sig, _),
-            ..
-        }) => sig.header.constness == Constness::Const,
+        | Node::Item(&Item { kind: ItemKind::Static(..), .. }) => true,
+        Node::Item(&Item { kind: ItemKind::Fn(ref sig, ..), .. })
+        | Node::ImplItem(&ImplItem { kind: ImplItemKind::Fn(ref sig, _), .. }) => {
+            sig.header.constness == Constness::Const
+        }
         _ => false,
     }
 }
@@ -104,11 +91,7 @@ pub fn in_constant(cx: &LateContext<'_, '_>, id: HirId) -> bool {
 #[must_use]
 pub fn in_macro(span: Span) -> bool {
     if span.from_expansion() {
-        if let ExpnKind::Desugaring(..) = span.ctxt().outer_expn_data().kind {
-            false
-        } else {
-            true
-        }
+        if let ExpnKind::Desugaring(..) = span.ctxt().outer_expn_data().kind { false } else { true }
     } else {
         false
     }
@@ -155,11 +138,7 @@ pub fn is_type_diagnostic_item(cx: &LateContext<'_, '_>, ty: Ty<'_>, diag_item: 
 pub fn match_trait_method(cx: &LateContext<'_, '_>, expr: &Expr<'_>, path: &[&str]) -> bool {
     let def_id = cx.tables.type_dependent_def_id(expr.hir_id).unwrap();
     let trt_id = cx.tcx.trait_of_item(def_id);
-    if let Some(trt_id) = trt_id {
-        match_def_path(cx, trt_id, path)
-    } else {
-        false
-    }
+    if let Some(trt_id) = trt_id { match_def_path(cx, trt_id, path) } else { false }
 }
 
 /// Checks if an expression references a variable of the given name.
@@ -174,7 +153,9 @@ pub fn match_var(expr: &Expr<'_>, var: Name) -> bool {
 
 pub fn last_path_segment<'tcx>(path: &QPath<'tcx>) -> &'tcx PathSegment<'tcx> {
     match *path {
-        QPath::Resolved(_, ref path) => path.segments.last().expect("A path must have at least one segment"),
+        QPath::Resolved(_, ref path) => {
+            path.segments.last().expect("A path must have at least one segment")
+        }
         QPath::TypeRelative(_, ref seg) => seg,
     }
 }
@@ -204,7 +185,7 @@ pub fn match_qpath(path: &QPath<'_>, segments: &[&str]) -> bool {
                 !segments.is_empty()
                     && match_qpath(inner_path, &segments[..(segments.len() - 1)])
                     && segment.ident.name.as_str() == segments[segments.len() - 1]
-            },
+            }
             _ => false,
         },
     }
@@ -227,11 +208,7 @@ pub fn match_qpath(path: &QPath<'_>, segments: &[&str]) -> bool {
 /// }
 /// ```
 pub fn match_path(path: &Path<'_>, segments: &[&str]) -> bool {
-    path.segments
-        .iter()
-        .rev()
-        .zip(segments.iter().rev())
-        .all(|(a, b)| a.ident.name.as_str() == *b)
+    path.segments.iter().rev().zip(segments.iter().rev()).all(|(a, b)| a.ident.name.as_str() == *b)
 }
 
 /// Matches a `Path` against a slice of segment string literals, e.g.
@@ -241,24 +218,15 @@ pub fn match_path(path: &Path<'_>, segments: &[&str]) -> bool {
 /// match_path_ast(path, &["std", "rt", "begin_unwind"])
 /// ```
 pub fn match_path_ast(path: &ast::Path, segments: &[&str]) -> bool {
-    path.segments
-        .iter()
-        .rev()
-        .zip(segments.iter().rev())
-        .all(|(a, b)| a.ident.name.as_str() == *b)
+    path.segments.iter().rev().zip(segments.iter().rev()).all(|(a, b)| a.ident.name.as_str() == *b)
 }
 
 /// Gets the definition associated to a path.
 pub fn path_to_res(cx: &LateContext<'_, '_>, path: &[&str]) -> Option<def::Res> {
     let crates = cx.tcx.crates();
-    let krate = crates
-        .iter()
-        .find(|&&krate| cx.tcx.crate_name(krate).as_str() == path[0]);
+    let krate = crates.iter().find(|&&krate| cx.tcx.crate_name(krate).as_str() == path[0]);
     if let Some(krate) = krate {
-        let krate = DefId {
-            krate: *krate,
-            index: CRATE_DEF_INDEX,
-        };
+        let krate = DefId { krate: *krate, index: CRATE_DEF_INDEX };
         let mut items = cx.tcx.item_children(krate);
         let mut path_it = path.iter().skip(1).peekable();
 
@@ -290,13 +258,11 @@ pub fn qpath_res(cx: &LateContext<'_, '_>, qpath: &hir::QPath<'_>, id: hir::HirI
         hir::QPath::Resolved(_, path) => path.res,
         hir::QPath::TypeRelative(..) => {
             if cx.tcx.has_typeck_tables(id.owner.to_def_id()) {
-                cx.tcx
-                    .typeck_tables_of(id.owner.to_def_id().expect_local())
-                    .qpath_res(qpath, id)
+                cx.tcx.typeck_tables_of(id.owner.to_def_id().expect_local()).qpath_res(qpath, id)
             } else {
                 Res::Err
             }
-        },
+        }
     }
 }
 
@@ -342,7 +308,10 @@ pub fn implements_trait<'a, 'tcx>(
 ///     }
 /// }
 /// ```
-pub fn trait_ref_of_method<'tcx>(cx: &LateContext<'_, 'tcx>, hir_id: HirId) -> Option<&'tcx TraitRef<'tcx>> {
+pub fn trait_ref_of_method<'tcx>(
+    cx: &LateContext<'_, 'tcx>,
+    hir_id: HirId,
+) -> Option<&'tcx TraitRef<'tcx>> {
     // Get the implemented trait for the current function
     let parent_impl = cx.tcx.hir().get_parent_item(hir_id);
     if_chain! {
@@ -516,7 +485,11 @@ pub fn snippet_with_applicability<'a, T: LintContext>(
 
 /// Same as `snippet`, but should only be used when it's clear that the input span is
 /// not a macro argument.
-pub fn snippet_with_macro_callsite<'a, T: LintContext>(cx: &T, span: Span, default: &'a str) -> Cow<'a, str> {
+pub fn snippet_with_macro_callsite<'a, T: LintContext>(
+    cx: &T,
+    span: Span,
+    default: &'a str,
+) -> Cow<'a, str> {
     snippet(cx, span.source_callsite(), default)
 }
 
@@ -605,8 +578,7 @@ pub fn first_line_of_span<T: LintContext>(cx: &T, span: Span) -> Span {
 fn first_char_in_first_line<T: LintContext>(cx: &T, span: Span) -> Option<BytePos> {
     let line_span = line_span(cx, span);
     if let Some(snip) = snippet_opt(cx, line_span) {
-        snip.find(|c: char| !c.is_whitespace())
-            .map(|pos| line_span.lo() + BytePos::from_usize(pos))
+        snip.find(|c: char| !c.is_whitespace()).map(|pos| line_span.lo() + BytePos::from_usize(pos))
     } else {
         None
     }
@@ -675,7 +647,12 @@ fn trim_multiline(s: Cow<'_, str>, ignore_first: bool, indent: Option<usize>) ->
     trim_multiline_inner(s_tab, ignore_first, indent, ' ')
 }
 
-fn trim_multiline_inner(s: Cow<'_, str>, ignore_first: bool, indent: Option<usize>, ch: char) -> Cow<'_, str> {
+fn trim_multiline_inner(
+    s: Cow<'_, str>,
+    ignore_first: bool,
+    indent: Option<usize>,
+    ch: char,
+) -> Cow<'_, str> {
     let mut x = s
         .lines()
         .skip(ignore_first as usize)
@@ -696,13 +673,11 @@ fn trim_multiline_inner(s: Cow<'_, str>, ignore_first: bool, indent: Option<usiz
         Cow::Owned(
             s.lines()
                 .enumerate()
-                .map(|(i, l)| {
-                    if (ignore_first && i == 0) || l.is_empty() {
-                        l
-                    } else {
-                        l.split_at(x).1
-                    }
-                })
+                .map(
+                    |(i, l)| {
+                        if (ignore_first && i == 0) || l.is_empty() { l } else { l.split_at(x).1 }
+                    },
+                )
                 .collect::<Vec<_>>()
                 .join("\n"),
         )
@@ -719,34 +694,30 @@ pub fn get_parent_expr<'c>(cx: &'c LateContext<'_, '_>, e: &Expr<'_>) -> Option<
     if hir_id == parent_id {
         return None;
     }
-    map.find(parent_id).and_then(|node| {
-        if let Node::Expr(parent) = node {
-            Some(parent)
-        } else {
-            None
-        }
-    })
+    map.find(parent_id).and_then(
+        |node| {
+            if let Node::Expr(parent) = node { Some(parent) } else { None }
+        },
+    )
 }
 
-pub fn get_enclosing_block<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, hir_id: HirId) -> Option<&'tcx Block<'tcx>> {
+pub fn get_enclosing_block<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    hir_id: HirId,
+) -> Option<&'tcx Block<'tcx>> {
     let map = &cx.tcx.hir();
-    let enclosing_node = map
-        .get_enclosing_scope(hir_id)
-        .and_then(|enclosing_id| map.find(enclosing_id));
+    let enclosing_node =
+        map.get_enclosing_scope(hir_id).and_then(|enclosing_id| map.find(enclosing_id));
     if let Some(node) = enclosing_node {
         match node {
             Node::Block(block) => Some(block),
-            Node::Item(&Item {
-                kind: ItemKind::Fn(_, _, eid),
-                ..
-            })
-            | Node::ImplItem(&ImplItem {
-                kind: ImplItemKind::Fn(_, eid),
-                ..
-            }) => match cx.tcx.hir().body(eid).value.kind {
-                ExprKind::Block(ref block, _) => Some(block),
-                _ => None,
-            },
+            Node::Item(&Item { kind: ItemKind::Fn(_, _, eid), .. })
+            | Node::ImplItem(&ImplItem { kind: ImplItemKind::Fn(_, eid), .. }) => {
+                match cx.tcx.hir().body(eid).value.kind {
+                    ExprKind::Block(ref block, _) => Some(block),
+                    _ => None,
+                }
+            }
             _ => None,
         }
     } else {
@@ -886,9 +857,7 @@ pub fn return_ty<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, fn_item: hir::HirId) -> T
 pub fn same_tys<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, a: Ty<'tcx>, b: Ty<'tcx>) -> bool {
     let a = cx.tcx.erase_late_bound_regions(&Binder::bind(a));
     let b = cx.tcx.erase_late_bound_regions(&Binder::bind(b));
-    cx.tcx
-        .infer_ctxt()
-        .enter(|infcx| infcx.can_eq(cx.param_env, a, b).is_ok())
+    cx.tcx.infer_ctxt().enter(|infcx| infcx.can_eq(cx.param_env, a, b).is_ok())
 }
 
 /// Returns `true` if the given type is an `unsafe` function.
@@ -928,7 +897,10 @@ pub fn is_refutable(cx: &LateContext<'_, '_>, pat: &Pat<'_>) -> bool {
         )
     }
 
-    fn are_refutable<'a, I: Iterator<Item = &'a Pat<'a>>>(cx: &LateContext<'_, '_>, mut i: I) -> bool {
+    fn are_refutable<'a, I: Iterator<Item = &'a Pat<'a>>>(
+        cx: &LateContext<'_, '_>,
+        mut i: I,
+    ) -> bool {
         i.any(|pat| is_refutable(cx, pat))
     }
 
@@ -941,27 +913,32 @@ pub fn is_refutable(cx: &LateContext<'_, '_>, pat: &Pat<'_>) -> bool {
         PatKind::Or(ref pats) => {
             // TODO: should be the honest check, that pats is exhaustive set
             are_refutable(cx, pats.iter().map(|pat| &**pat))
-        },
+        }
         PatKind::Tuple(ref pats, _) => are_refutable(cx, pats.iter().map(|pat| &**pat)),
         PatKind::Struct(ref qpath, ref fields, _) => {
-            is_enum_variant(cx, qpath, pat.hir_id) || are_refutable(cx, fields.iter().map(|field| &*field.pat))
-        },
+            is_enum_variant(cx, qpath, pat.hir_id)
+                || are_refutable(cx, fields.iter().map(|field| &*field.pat))
+        }
         PatKind::TupleStruct(ref qpath, ref pats, _) => {
-            is_enum_variant(cx, qpath, pat.hir_id) || are_refutable(cx, pats.iter().map(|pat| &**pat))
-        },
+            is_enum_variant(cx, qpath, pat.hir_id)
+                || are_refutable(cx, pats.iter().map(|pat| &**pat))
+        }
         PatKind::Slice(ref head, ref middle, ref tail) => {
             match &cx.tables.node_type(pat.hir_id).kind {
                 ty::Slice(..) => {
                     // [..] is the only irrefutable slice pattern.
                     !head.is_empty() || middle.is_none() || !tail.is_empty()
-                },
-                ty::Array(..) => are_refutable(cx, head.iter().chain(middle).chain(tail.iter()).map(|pat| &**pat)),
+                }
+                ty::Array(..) => are_refutable(
+                    cx,
+                    head.iter().chain(middle).chain(tail.iter()).map(|pat| &**pat),
+                ),
                 _ => {
                     // unreachable!()
                     true
-                },
+                }
             }
-        },
+        }
     }
 }
 
@@ -1005,7 +982,10 @@ pub fn is_self_ty(slf: &hir::Ty<'_>) -> bool {
     false
 }
 
-pub fn iter_input_pats<'tcx>(decl: &FnDecl<'_>, body: &'tcx Body<'_>) -> impl Iterator<Item = &'tcx Param<'tcx>> {
+pub fn iter_input_pats<'tcx>(
+    decl: &FnDecl<'_>,
+    body: &'tcx Body<'_>,
+) -> impl Iterator<Item = &'tcx Param<'tcx>> {
     (0..decl.inputs.len()).map(move |i| &body.params[i])
 }
 
@@ -1210,7 +1190,11 @@ pub fn match_function_call<'a, 'tcx>(
 
 /// Checks if `Ty` is normalizable. This function is useful
 /// to avoid crashes on `layout_of`.
-pub fn is_normalizable<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, param_env: ty::ParamEnv<'tcx>, ty: Ty<'tcx>) -> bool {
+pub fn is_normalizable<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    param_env: ty::ParamEnv<'tcx>,
+    ty: Ty<'tcx>,
+) -> bool {
     cx.tcx.infer_ctxt().enter(|infcx| {
         let cause = rustc_middle::traits::ObligationCause::dummy();
         infcx.at(&cause, param_env).normalize(&ty).is_ok()
@@ -1273,9 +1257,7 @@ pub fn parent_node_is_if_expr<'a, 'b>(expr: &Expr<'_>, cx: &LateContext<'a, 'b>)
 
 // Finds the attribute with the given name, if any
 pub fn attr_by_name<'a>(attrs: &'a [Attribute], name: &'_ str) -> Option<&'a Attribute> {
-    attrs
-        .iter()
-        .find(|attr| attr.ident().map_or(false, |ident| ident.as_str() == name))
+    attrs.iter().find(|attr| attr.ident().map_or(false, |ident| ident.as_str() == name))
 }
 
 // Finds the `#[must_use]` attribute, if any
@@ -1295,18 +1277,22 @@ pub fn is_must_use_ty<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ty: Ty<'tcx>) -> boo
             // for the Array case we don't need to care for the len == 0 case
             // because we don't want to lint functions returning empty arrays
             is_must_use_ty(cx, *ty)
-        },
+        }
         ty::Tuple(ref substs) => substs.types().any(|ty| is_must_use_ty(cx, ty)),
         ty::Opaque(ref def_id, _) => {
             for (predicate, _) in cx.tcx.predicates_of(*def_id).predicates {
                 if let ty::Predicate::Trait(ref poly_trait_predicate, _) = predicate {
-                    if must_use_attr(&cx.tcx.get_attrs(poly_trait_predicate.skip_binder().trait_ref.def_id)).is_some() {
+                    if must_use_attr(
+                        &cx.tcx.get_attrs(poly_trait_predicate.skip_binder().trait_ref.def_id),
+                    )
+                    .is_some()
+                    {
                         return true;
                     }
                 }
             }
             false
-        },
+        }
         ty::Dynamic(binder, _) => {
             for predicate in binder.skip_binder().iter() {
                 if let ty::ExistentialPredicate::Trait(ref trait_ref) = predicate {
@@ -1316,7 +1302,7 @@ pub fn is_must_use_ty<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ty: Ty<'tcx>) -> boo
                 }
             }
             false
-        },
+        }
         _ => false,
     }
 }
@@ -1337,11 +1323,7 @@ pub fn is_must_use_func_call(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool 
         _ => None,
     };
 
-    if let Some(did) = did {
-        must_use_attr(&cx.tcx.get_attrs(did)).is_some()
-    } else {
-        false
-    }
+    if let Some(did) = did { must_use_attr(&cx.tcx.get_attrs(did)).is_some() } else { false }
 }
 
 pub fn is_no_std_crate(krate: &Crate<'_>) -> bool {
@@ -1380,17 +1362,15 @@ pub fn is_trait_impl_item(cx: &LateContext<'_, '_>, hir_id: HirId) -> bool {
 /// ```
 pub fn fn_has_unsatisfiable_preds(cx: &LateContext<'_, '_>, did: DefId) -> bool {
     use rustc_trait_selection::traits;
-    let predicates =
-        cx.tcx
-            .predicates_of(did)
-            .predicates
-            .iter()
-            .filter_map(|(p, _)| if p.is_global() { Some(*p) } else { None });
+    let predicates = cx
+        .tcx
+        .predicates_of(did)
+        .predicates
+        .iter()
+        .filter_map(|(p, _)| if p.is_global() { Some(*p) } else { None });
     !traits::normalize_and_test_predicates(
         cx.tcx,
-        traits::elaborate_predicates(cx.tcx, predicates)
-            .map(|o| o.predicate)
-            .collect::<Vec<_>>(),
+        traits::elaborate_predicates(cx.tcx, predicates).map(|o| o.predicate).collect::<Vec<_>>(),
     )
 }
 
@@ -1464,7 +1444,17 @@ mod test {
         println!("result: {:?}", result);
         assert!(result.is_empty());
 
-        let result = without_block_comments(vec!["", "/*", "", "*/", "#[crate_type = \"lib\"]", "/*", "", "*/", ""]);
+        let result = without_block_comments(vec![
+            "",
+            "/*",
+            "",
+            "*/",
+            "#[crate_type = \"lib\"]",
+            "/*",
+            "",
+            "*/",
+            "",
+        ]);
         assert_eq!(result, vec!["", "#[crate_type = \"lib\"]", ""]);
 
         let result = without_block_comments(vec!["/* rust", "", "*/"]);
@@ -1473,7 +1463,14 @@ mod test {
         let result = without_block_comments(vec!["/* one-line comment */"]);
         assert!(result.is_empty());
 
-        let result = without_block_comments(vec!["/* nested", "/* multi-line", "comment", "*/", "test", "*/"]);
+        let result = without_block_comments(vec![
+            "/* nested",
+            "/* multi-line",
+            "comment",
+            "*/",
+            "test",
+            "*/",
+        ]);
         assert!(result.is_empty());
 
         let result = without_block_comments(vec!["/* nested /* inline /* comment */ test */ */"]);

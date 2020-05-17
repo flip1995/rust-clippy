@@ -1,4 +1,6 @@
-use crate::utils::{fn_has_unsatisfiable_preds, has_drop, is_entrypoint_fn, span_lint, trait_ref_of_method};
+use crate::utils::{
+    fn_has_unsatisfiable_preds, has_drop, is_entrypoint_fn, span_lint, trait_ref_of_method,
+};
 use rustc_hir as hir;
 use rustc_hir::intravisit::FnKind;
 use rustc_hir::{Body, Constness, FnDecl, GenericParamKind, HirId};
@@ -104,7 +106,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingConstForFn {
                 if already_const(header) || has_const_generic_params {
                     return;
                 }
-            },
+            }
             FnKind::Method(_, sig, ..) => {
                 if trait_ref_of_method(cx, hir_id).is_some()
                     || already_const(sig.header)
@@ -112,7 +114,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MissingConstForFn {
                 {
                     return;
                 }
-            },
+            }
             _ => return,
         }
 

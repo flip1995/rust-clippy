@@ -38,7 +38,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MinMaxPass {
                     outer_max,
                     Constant::partial_cmp(cx.tcx, cx.tables.expr_ty(ie), &outer_c, &inner_c),
                 ) {
-                    (_, None) | (MinMax::Max, Some(Ordering::Less)) | (MinMax::Min, Some(Ordering::Greater)) => (),
+                    (_, None)
+                    | (MinMax::Max, Some(Ordering::Less))
+                    | (MinMax::Min, Some(Ordering::Greater)) => (),
                     _ => {
                         span_lint(
                             cx,
@@ -46,7 +48,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MinMaxPass {
                             expr.span,
                             "this `min`/`max` combination leads to constant result",
                         );
-                    },
+                    }
                 }
             }
         }
@@ -59,7 +61,10 @@ enum MinMax {
     Max,
 }
 
-fn min_max<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option<(MinMax, Constant, &'a Expr<'a>)> {
+fn min_max<'a>(
+    cx: &LateContext<'_, '_>,
+    expr: &'a Expr<'a>,
+) -> Option<(MinMax, Constant, &'a Expr<'a>)> {
     if let ExprKind::Call(ref path, ref args) = expr.kind {
         if let ExprKind::Path(ref qpath) = path.kind {
             cx.tables.qpath_res(qpath, path.hir_id).opt_def_id().and_then(|def_id| {

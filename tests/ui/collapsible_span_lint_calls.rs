@@ -15,8 +15,13 @@ use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::source_map::Span;
 
 #[allow(unused_variables)]
-pub fn span_lint_and_then<'a, T: LintContext, F>(cx: &'a T, lint: &'static Lint, sp: Span, msg: &str, f: F)
-where
+pub fn span_lint_and_then<'a, T: LintContext, F>(
+    cx: &'a T,
+    lint: &'static Lint,
+    sp: Span,
+    msg: &str,
+    f: F,
+) where
     F: for<'b> FnOnce(&mut DiagnosticBuilder<'b>),
 {
 }
@@ -73,7 +78,12 @@ impl EarlyLintPass for Pass {
         let predicate = true;
 
         span_lint_and_then(cx, TEST_LINT, expr.span, lint_msg, |db| {
-            db.span_suggestion(expr.span, help_msg, sugg.to_string(), Applicability::MachineApplicable);
+            db.span_suggestion(
+                expr.span,
+                help_msg,
+                sugg.to_string(),
+                Applicability::MachineApplicable,
+            );
         });
         span_lint_and_then(cx, TEST_LINT, expr.span, lint_msg, |db| {
             db.span_help(expr.span, help_msg);

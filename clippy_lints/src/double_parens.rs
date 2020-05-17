@@ -40,8 +40,8 @@ impl EarlyLintPass for DoubleParens {
                         expr.span,
                         "Consider removing unnecessary double parentheses",
                     );
-                },
-                _ => {},
+                }
+                _ => {}
             },
             ExprKind::Call(_, ref params) => {
                 if params.len() == 1 {
@@ -55,7 +55,7 @@ impl EarlyLintPass for DoubleParens {
                         );
                     }
                 }
-            },
+            }
             ExprKind::MethodCall(_, ref params) => {
                 if params.len() == 2 {
                     let param = &params[1];
@@ -68,8 +68,8 @@ impl EarlyLintPass for DoubleParens {
                         );
                     }
                 }
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

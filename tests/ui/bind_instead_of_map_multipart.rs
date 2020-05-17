@@ -8,7 +8,8 @@ pub fn main() {
     let _ = Ok::<_, ()>("42").and_then(|s| if s.len() < 42 { Ok(0) } else { Ok(s.len()) });
     let _ = Ok::<_, ()>("42").and_then(|s| if s.len() < 42 { Err(()) } else { Ok(s.len()) });
 
-    let _ = Err::<(), _>("42").or_else(|s| if s.len() < 42 { Err(s.len() + 20) } else { Err(s.len()) });
+    let _ =
+        Err::<(), _>("42").or_else(|s| if s.len() < 42 { Err(s.len() + 20) } else { Err(s.len()) });
     let _ = Err::<(), _>("42").or_else(|s| if s.len() < 42 { Ok(()) } else { Err(s.len()) });
 
     hard_example();
@@ -38,7 +39,7 @@ fn hard_example() {
                     };
                 }
                 Some(20)
-            },
+            }
             40 => Some(30),
             _ => Some(1),
         }

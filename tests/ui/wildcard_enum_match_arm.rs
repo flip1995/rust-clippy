@@ -45,12 +45,12 @@ fn main() {
         not_red => format!("{:?}", not_red),
     };
     match color {
-        Color::Red => {},
-        Color::Green => {},
-        Color::Blue => {},
-        Color::Cyan => {},
-        c if c.is_monochrome() => {},
-        Color::Rgb(_, _, _) => {},
+        Color::Red => {}
+        Color::Green => {}
+        Color::Blue => {}
+        Color::Cyan => {}
+        c if c.is_monochrome() => {}
+        Color::Rgb(_, _, _) => {}
     };
     let _str = match color {
         Color::Red => "Red",
@@ -61,41 +61,41 @@ fn main() {
         _ => "No red",
     };
     match color {
-        Color::Red | Color::Green | Color::Blue | Color::Cyan => {},
-        Color::Rgb(..) => {},
+        Color::Red | Color::Green | Color::Blue | Color::Cyan => {}
+        Color::Rgb(..) => {}
     };
     let x: u8 = unimplemented!();
     match x {
-        0 => {},
-        140 => {},
-        _ => {},
+        0 => {}
+        140 => {}
+        _ => {}
     };
     // We need to use an enum not defined in this test because non_exhaustive is ignored for the
     // purposes of dead code analysis within a crate.
     let error_kind = ErrorKind::NotFound;
     match error_kind {
-        ErrorKind::NotFound => {},
-        _ => {},
+        ErrorKind::NotFound => {}
+        _ => {}
     }
     match error_kind {
-        ErrorKind::NotFound => {},
-        ErrorKind::PermissionDenied => {},
-        ErrorKind::ConnectionRefused => {},
-        ErrorKind::ConnectionReset => {},
-        ErrorKind::ConnectionAborted => {},
-        ErrorKind::NotConnected => {},
-        ErrorKind::AddrInUse => {},
-        ErrorKind::AddrNotAvailable => {},
-        ErrorKind::BrokenPipe => {},
-        ErrorKind::AlreadyExists => {},
-        ErrorKind::WouldBlock => {},
-        ErrorKind::InvalidInput => {},
-        ErrorKind::InvalidData => {},
-        ErrorKind::TimedOut => {},
-        ErrorKind::WriteZero => {},
-        ErrorKind::Interrupted => {},
-        ErrorKind::Other => {},
-        ErrorKind::UnexpectedEof => {},
-        _ => {},
+        ErrorKind::NotFound => {}
+        ErrorKind::PermissionDenied => {}
+        ErrorKind::ConnectionRefused => {}
+        ErrorKind::ConnectionReset => {}
+        ErrorKind::ConnectionAborted => {}
+        ErrorKind::NotConnected => {}
+        ErrorKind::AddrInUse => {}
+        ErrorKind::AddrNotAvailable => {}
+        ErrorKind::BrokenPipe => {}
+        ErrorKind::AlreadyExists => {}
+        ErrorKind::WouldBlock => {}
+        ErrorKind::InvalidInput => {}
+        ErrorKind::InvalidData => {}
+        ErrorKind::TimedOut => {}
+        ErrorKind::WriteZero => {}
+        ErrorKind::Interrupted => {}
+        ErrorKind::Other => {}
+        ErrorKind::UnexpectedEof => {}
+        _ => {}
     }
 }

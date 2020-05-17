@@ -34,7 +34,8 @@ impl LateLintPass<'_, '_> for WildcardDependencies {
             return;
         }
 
-        let metadata = if let Ok(metadata) = cargo_metadata::MetadataCommand::new().no_deps().exec() {
+        let metadata = if let Ok(metadata) = cargo_metadata::MetadataCommand::new().no_deps().exec()
+        {
             metadata
         } else {
             span_lint(cx, WILDCARD_DEPENDENCIES, DUMMY_SP, "could not read cargo metadata");

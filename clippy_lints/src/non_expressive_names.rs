@@ -1,6 +1,7 @@
 use crate::utils::{span_lint, span_lint_and_then};
 use rustc_ast::ast::{
-    Arm, AssocItem, AssocItemKind, Attribute, Block, FnDecl, Item, ItemKind, Local, MacCall, Pat, PatKind,
+    Arm, AssocItem, AssocItemKind, Attribute, Block, FnDecl, Item, ItemKind, Local, MacCall, Pat,
+    PatKind,
 };
 use rustc_ast::attr;
 use rustc_ast::visit::{walk_block, walk_expr, walk_pat, Visitor};
@@ -94,20 +95,13 @@ impl<'a, 'tcx> SimilarNamesLocalVisitor<'a, 'tcx> {
         let num_single_char_names = self.single_char_names.iter().flatten().count();
         let threshold = self.lint.single_char_binding_names_threshold;
         if num_single_char_names as u64 > threshold {
-            let span = self
-                .single_char_names
-                .iter()
-                .flatten()
-                .map(|ident| ident.span)
-                .collect::<Vec<_>>();
+            let span =
+                self.single_char_names.iter().flatten().map(|ident| ident.span).collect::<Vec<_>>();
             span_lint(
                 self.cx,
                 MANY_SINGLE_CHAR_NAMES,
                 span,
-                &format!(
-                    "{} bindings with single-character names in scope",
-                    num_single_char_names
-                ),
+                &format!("{} bindings with single-character names in scope", num_single_char_names),
             );
         }
     }
@@ -138,7 +132,7 @@ impl<'a, 'tcx, 'b> Visitor<'tcx> for SimilarNamesNameVisitor<'a, 'tcx, 'b> {
                         self.visit_pat(&field.pat);
                     }
                 }
-            },
+            }
             // just go through the first pattern, as either all patterns
             // bind the same bindings or rustc would have errored much earlier
             PatKind::Or(ref pats) => self.visit_pat(&pats[0]),
@@ -162,20 +156,13 @@ fn get_whitelist(interned_name: &str) -> Option<&'static [&'static str]> {
 
 #[must_use]
 fn whitelisted(interned_name: &str, list: &[&str]) -> bool {
-    list.iter()
-        .any(|&name| interned_name.starts_with(name) || interned_name.ends_with(name))
+    list.iter().any(|&name| interned_name.starts_with(name) || interned_name.ends_with(name))
 }
 
 impl<'a, 'tcx, 'b> SimilarNamesNameVisitor<'a, 'tcx, 'b> {
     fn check_short_ident(&mut self, ident: Ident) {
         // Ignore shadowing
-        if self
-            .0
-            .single_char_names
-            .iter()
-            .flatten()
-            .any(|id| id.name == ident.name)
-        {
+        if self.0.single_char_names.iter().flatten().any(|id| id.name == ident.name) {
             return;
         }
 
@@ -213,25 +200,32 @@ impl<'a, 'tcx, 'b> SimilarNamesNameVisitor<'a, 'tcx, 'b> {
             let mut split_at = None;
             match existing_name.len.cmp(&count) {
                 Ordering::Greater => {
-                    if existing_name.len - count != 1 || levenstein_not_1(&interned_name, &existing_name.interned) {
+                    if existing_name.len - count != 1
+                        || levenstein_not_1(&interned_name, &existing_name.interned)
+                    {
                         continue;
                     }
-                },
+                }
                 Ordering::Less => {
-                    if count - existing_name.len != 1 || levenstein_not_1(&existing_name.interned, &interned_name) {
+                    if count - existing_name.len != 1
+                        || levenstein_not_1(&existing_name.interned, &interned_name)
+                    {
                         continue;
                     }
-                },
+                }
                 Ordering::Equal => {
                     let mut interned_chars = interned_name.chars();
                     let mut existing_chars = existing_name.interned.chars();
                     let first_i = interned_chars.next().expect("we know we have at least one char");
                     let first_e = existing_chars.next().expect("we know we have at least one char");
-                    let eq_or_numeric = |(a, b): (char, char)| a == b || a.is_numeric() && b.is_numeric();
+                    let eq_or_numeric =
+                        |(a, b): (char, char)| a == b || a.is_numeric() && b.is_numeric();
 
                     if eq_or_numeric((first_i, first_e)) {
-                        let last_i = interned_chars.next_back().expect("we know we have at least two chars");
-                        let last_e = existing_chars.next_back().expect("we know we have at least two chars");
+                        let last_i =
+                            interned_chars.next_back().expect("we know we have at least two chars");
+                        let last_e =
+                            existing_chars.next_back().expect("we know we have at least two chars");
                         if eq_or_numeric((last_i, last_e)) {
                             if interned_chars
                                 .zip(existing_chars)
@@ -259,8 +253,10 @@ impl<'a, 'tcx, 'b> SimilarNamesNameVisitor<'a, 'tcx, 'b> {
                             split_at = interned_name.char_indices().rev().next().map(|(i, _)| i);
                         }
                     } else {
-                        let second_i = interned_chars.next().expect("we know we have at least two chars");
-                        let second_e = existing_chars.next().expect("we know we have at least two chars");
+                        let second_i =
+                            interned_chars.next().expect("we know we have at least two chars");
+                        let second_e =
+                            existing_chars.next().expect("we know we have at least two chars");
                         if !eq_or_numeric((second_i, second_e))
                             || second_i == '_'
                             || !interned_chars.zip(existing_chars).all(eq_or_numeric)
@@ -271,7 +267,7 @@ impl<'a, 'tcx, 'b> SimilarNamesNameVisitor<'a, 'tcx, 'b> {
                         }
                         split_at = interned_name.chars().next().map(char::len_utf8);
                     }
-                },
+                }
             }
             span_lint_and_then(
                 self.0.cx,
@@ -366,7 +362,13 @@ impl EarlyLintPass for NonExpressiveNames {
     }
 }
 
-fn do_check(lint: &mut NonExpressiveNames, cx: &EarlyContext<'_>, attrs: &[Attribute], decl: &FnDecl, blk: &Block) {
+fn do_check(
+    lint: &mut NonExpressiveNames,
+    cx: &EarlyContext<'_>,
+    attrs: &[Attribute],
+    decl: &FnDecl,
+    blk: &Block,
+) {
     if !attr::contains_name(attrs, sym!(test)) {
         let mut visitor = SimilarNamesLocalVisitor {
             names: Vec::new(),

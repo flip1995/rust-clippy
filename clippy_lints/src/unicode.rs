@@ -117,7 +117,9 @@ fn check_str(cx: &LateContext<'_, '_>, span: Span, id: HirId) {
             Applicability::MachineApplicable,
         );
     }
-    if is_allowed(cx, NON_ASCII_LITERAL, id) && string.chars().zip(string.nfc()).any(|(a, b)| a != b) {
+    if is_allowed(cx, NON_ASCII_LITERAL, id)
+        && string.chars().zip(string.nfc()).any(|(a, b)| a != b)
+    {
         span_lint_and_sugg(
             cx,
             UNICODE_NOT_NFC,

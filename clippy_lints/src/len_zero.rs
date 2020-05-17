@@ -1,9 +1,13 @@
-use crate::utils::{get_item_name, snippet_with_applicability, span_lint, span_lint_and_sugg, walk_ptrs_ty};
+use crate::utils::{
+    get_item_name, snippet_with_applicability, span_lint, span_lint_and_sugg, walk_ptrs_ty,
+};
 use rustc_ast::ast::LitKind;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_errors::Applicability;
 use rustc_hir::def_id::DefId;
-use rustc_hir::{AssocItemKind, BinOpKind, Expr, ExprKind, ImplItemRef, Item, ItemKind, TraitItemRef};
+use rustc_hir::{
+    AssocItemKind, BinOpKind, Expr, ExprKind, ImplItemRef, Item, ItemKind, TraitItemRef,
+};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
 use rustc_session::{declare_lint_pass, declare_tool_lint};
@@ -77,12 +81,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LenZero {
         }
 
         match item.kind {
-            ItemKind::Trait(_, _, _, _, ref trait_items) => check_trait_items(cx, item, trait_items),
-            ItemKind::Impl {
-                of_trait: None,
-                items: ref impl_items,
-                ..
-            } => check_impl_items(cx, item, impl_items),
+            ItemKind::Trait(_, _, _, _, ref trait_items) => {
+                check_trait_items(cx, item, trait_items)
+            }
+            ItemKind::Impl { of_trait: None, items: ref impl_items, .. } => {
+                check_impl_items(cx, item, impl_items)
+            }
             _ => (),
         }
     }
@@ -97,19 +101,19 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LenZero {
                 BinOpKind::Eq => {
                     check_cmp(cx, expr.span, left, right, "", 0); // len == 0
                     check_cmp(cx, expr.span, right, left, "", 0); // 0 == len
-                },
+                }
                 BinOpKind::Ne => {
                     check_cmp(cx, expr.span, left, right, "!", 0); // len != 0
                     check_cmp(cx, expr.span, right, left, "!", 0); // 0 != len
-                },
+                }
                 BinOpKind::Gt => {
                     check_cmp(cx, expr.span, left, right, "!", 0); // len > 0
                     check_cmp(cx, expr.span, right, left, "", 1); // 1 > len
-                },
+                }
                 BinOpKind::Lt => {
                     check_cmp(cx, expr.span, left, right, "", 1); // len < 1
                     check_cmp(cx, expr.span, right, left, "!", 0); // 0 < len
-                },
+                }
                 BinOpKind::Ge => check_cmp(cx, expr.span, left, right, "!", 1), // len >= 1
                 BinOpKind::Le => check_cmp(cx, expr.span, right, left, "!", 1), // 1 <= len
                 _ => (),
@@ -118,7 +122,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LenZero {
     }
 }
 
-fn check_trait_items(cx: &LateContext<'_, '_>, visited_trait: &Item<'_>, trait_items: &[TraitItemRef]) {
+fn check_trait_items(
+    cx: &LateContext<'_, '_>,
+    visited_trait: &Item<'_>,
+    trait_items: &[TraitItemRef],
+) {
     fn is_named_self(cx: &LateContext<'_, '_>, item: &TraitItemRef, name: &str) -> bool {
         item.ident.name.as_str() == name
             && if let AssocItemKind::Fn { has_self } = item.kind {
@@ -140,7 +148,9 @@ fn check_trait_items(cx: &LateContext<'_, '_>, visited_trait: &Item<'_>, trait_i
         }
     }
 
-    if cx.access_levels.is_exported(visited_trait.hir_id) && trait_items.iter().any(|i| is_named_self(cx, i, "len")) {
+    if cx.access_levels.is_exported(visited_trait.hir_id)
+        && trait_items.iter().any(|i| is_named_self(cx, i, "len"))
+    {
         let mut current_and_super_traits = FxHashSet::default();
         let visited_trait_def_id = cx.tcx.hir().local_def_id(visited_trait.hir_id);
         fill_trait_set(visited_trait_def_id.to_def_id(), &mut current_and_super_traits, cx);
@@ -182,15 +192,16 @@ fn check_impl_items(cx: &LateContext<'_, '_>, item: &Item<'_>, impl_items: &[Imp
             }
     }
 
-    let is_empty = if let Some(is_empty) = impl_items.iter().find(|i| is_named_self(cx, i, "is_empty")) {
-        if cx.access_levels.is_exported(is_empty.id.hir_id) {
-            return;
+    let is_empty =
+        if let Some(is_empty) = impl_items.iter().find(|i| is_named_self(cx, i, "is_empty")) {
+            if cx.access_levels.is_exported(is_empty.id.hir_id) {
+                return;
+            } else {
+                "a private"
+            }
         } else {
-            "a private"
-        }
-    } else {
-        "no corresponding"
-    };
+            "no corresponding"
+        };
 
     if let Some(i) = impl_items.iter().find(|i| is_named_self(cx, i, "len")) {
         if cx.access_levels.is_exported(i.id.hir_id) {
@@ -210,8 +221,17 @@ fn check_impl_items(cx: &LateContext<'_, '_>, item: &Item<'_>, impl_items: &[Imp
     }
 }
 
-fn check_cmp(cx: &LateContext<'_, '_>, span: Span, method: &Expr<'_>, lit: &Expr<'_>, op: &str, compare_to: u32) {
-    if let (&ExprKind::MethodCall(ref method_path, _, ref args), &ExprKind::Lit(ref lit)) = (&method.kind, &lit.kind) {
+fn check_cmp(
+    cx: &LateContext<'_, '_>,
+    span: Span,
+    method: &Expr<'_>,
+    lit: &Expr<'_>,
+    op: &str,
+    compare_to: u32,
+) {
+    if let (&ExprKind::MethodCall(ref method_path, _, ref args), &ExprKind::Lit(ref lit)) =
+        (&method.kind, &lit.kind)
+    {
         // check if we are in an is_empty() method
         if let Some(name) = get_item_name(cx, method) {
             if name.as_str() == "is_empty" {
@@ -277,10 +297,7 @@ fn has_is_empty(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
     /// Checks the inherent impl's items for an `is_empty(self)` method.
     fn has_is_empty_impl(cx: &LateContext<'_, '_>, id: DefId) -> bool {
         cx.tcx.inherent_impls(id).iter().any(|imp| {
-            cx.tcx
-                .associated_items(*imp)
-                .in_definition_order()
-                .any(|item| is_is_empty(cx, &item))
+            cx.tcx.associated_items(*imp).in_definition_order().any(|item| is_is_empty(cx, &item))
         })
     }
 
@@ -295,7 +312,7 @@ fn has_is_empty(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
             } else {
                 false
             }
-        },
+        }
         ty::Projection(ref proj) => has_is_empty_impl(cx, proj.item_def_id),
         ty::Adt(id, _) => has_is_empty_impl(cx, id.did),
         ty::Array(..) | ty::Slice(..) | ty::Str => true,

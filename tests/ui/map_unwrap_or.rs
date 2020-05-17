@@ -86,7 +86,7 @@ fn result_methods() {
     // Check for `result.map(_).unwrap_or_else(_)` use.
     // single line case
     let _ = res.map(|x| x + 1).unwrap_or_else(|e| 0); // should lint even though this call is on a separate line
-                                                      // multi line cases
+    // multi line cases
     let _ = res.map(|x| x + 1).unwrap_or_else(|e| 0);
     let _ = res.map(|x| x + 1).unwrap_or_else(|e| 0);
     // macro case

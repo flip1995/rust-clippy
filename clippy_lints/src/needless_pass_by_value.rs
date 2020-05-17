@@ -1,14 +1,16 @@
 use crate::utils::ptr::get_spans;
 use crate::utils::{
-    get_trait_def_id, implements_trait, is_copy, is_self, is_type_diagnostic_item, multispan_sugg, paths, snippet,
-    snippet_opt, span_lint_and_then,
+    get_trait_def_id, implements_trait, is_copy, is_self, is_type_diagnostic_item, multispan_sugg,
+    paths, snippet, snippet_opt, span_lint_and_then,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::Attribute;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_errors::{Applicability, DiagnosticBuilder};
 use rustc_hir::intravisit::FnKind;
-use rustc_hir::{BindingAnnotation, Body, FnDecl, GenericArg, HirId, ItemKind, Node, PatKind, QPath, TyKind};
+use rustc_hir::{
+    BindingAnnotation, Body, FnDecl, GenericArg, HirId, ItemKind, Node, PatKind, QPath, TyKind,
+};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty::{self, TypeFoldable};
@@ -84,7 +86,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessPassByValue {
                 if header.abi != Abi::Rust || requires_exact_signature(attrs) {
                     return;
                 }
-            },
+            }
             FnKind::Method(..) => (),
             _ => return,
         }
@@ -111,31 +113,30 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessPassByValue {
 
         let fn_def_id = cx.tcx.hir().local_def_id(hir_id);
 
-        let preds = traits::elaborate_predicates(cx.tcx, cx.param_env.caller_bounds.iter().copied())
-            .filter(|p| !p.is_global())
-            .filter_map(|obligation| {
-                if let ty::Predicate::Trait(poly_trait_ref, _) = obligation.predicate {
-                    if poly_trait_ref.def_id() == sized_trait || poly_trait_ref.skip_binder().has_escaping_bound_vars()
-                    {
-                        return None;
+        let preds =
+            traits::elaborate_predicates(cx.tcx, cx.param_env.caller_bounds.iter().copied())
+                .filter(|p| !p.is_global())
+                .filter_map(|obligation| {
+                    if let ty::Predicate::Trait(poly_trait_ref, _) = obligation.predicate {
+                        if poly_trait_ref.def_id() == sized_trait
+                            || poly_trait_ref.skip_binder().has_escaping_bound_vars()
+                        {
+                            return None;
+                        }
+                        Some(poly_trait_ref)
+                    } else {
+                        None
                     }
-                    Some(poly_trait_ref)
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
+                })
+                .collect::<Vec<_>>();
 
         // Collect moved variables and spans which will need dereferencings from the
         // function body.
-        let MovedVariablesCtxt {
-            moved_vars,
-            spans_need_deref,
-            ..
-        } = {
+        let MovedVariablesCtxt { moved_vars, spans_need_deref, .. } = {
             let mut ctx = MovedVariablesCtxt::default();
             cx.tcx.infer_ctxt().enter(|infcx| {
-                euv::ExprUseVisitor::new(&mut ctx, &infcx, fn_def_id, cx.param_env, cx.tables).consume_body(body);
+                euv::ExprUseVisitor::new(&mut ctx, &infcx, fn_def_id, cx.param_env, cx.tables)
+                    .consume_body(body);
             });
             ctx
         };
@@ -143,7 +144,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessPassByValue {
         let fn_sig = cx.tcx.fn_sig(fn_def_id);
         let fn_sig = cx.tcx.erase_late_bound_regions(&fn_sig);
 
-        for (idx, ((input, &ty), arg)) in decl.inputs.iter().zip(fn_sig.inputs()).zip(body.params).enumerate() {
+        for (idx, ((input, &ty), arg)) in
+            decl.inputs.iter().zip(fn_sig.inputs()).zip(body.params).enumerate()
+        {
             // All spans generated from a proc-macro invocation are the same...
             if span == input.span {
                 return;
@@ -163,10 +166,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessPassByValue {
             // * Exclude a type whose reference also fulfills its bound. (e.g., `std::convert::AsRef`,
             //   `serde::Serialize`)
             let (implements_borrow_trait, all_borrowable_trait) = {
-                let preds = preds
-                    .iter()
-                    .filter(|t| t.skip_binder().self_ty() == ty)
-                    .collect::<Vec<_>>();
+                let preds =
+                    preds.iter().filter(|t| t.skip_binder().self_ty() == ty).collect::<Vec<_>>();
 
                 (
                     preds.iter().any(|t| t.def_id() == borrow_trait),

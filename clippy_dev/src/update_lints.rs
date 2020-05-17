@@ -1,6 +1,6 @@
 use crate::{
-    gather_all, gen_changelog_lint_list, gen_deprecated, gen_lint_group_list, gen_modules_list, gen_register_lint_list,
-    replace_region_in_file, Lint, DOCS_LINK,
+    gather_all, gen_changelog_lint_list, gen_deprecated, gen_lint_group_list, gen_modules_list,
+    gen_register_lint_list, replace_region_in_file, Lint, DOCS_LINK,
 };
 use std::path::Path;
 
@@ -39,10 +39,7 @@ pub fn run(update_mode: UpdateMode) {
 
     file_change |= replace_region_in_file(
         Path::new("README.md"),
-        &format!(
-            r#"\[There are over \d+ lints included in this crate!\]\({}\)"#,
-            DOCS_LINK
-        ),
+        &format!(r#"\[There are over \d+ lints included in this crate!\]\({}\)"#, DOCS_LINK),
         "",
         true,
         update_mode == UpdateMode::Change,
@@ -105,7 +102,10 @@ pub fn run(update_mode: UpdateMode) {
         || {
             // clippy::all should only include the following lint groups:
             let all_group_lints = usable_lints.iter().filter(|l| {
-                l.group == "correctness" || l.group == "style" || l.group == "complexity" || l.group == "perf"
+                l.group == "correctness"
+                    || l.group == "style"
+                    || l.group == "complexity"
+                    || l.group == "perf"
             });
 
             gen_lint_group_list(all_group_lints)

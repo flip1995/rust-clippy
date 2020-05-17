@@ -22,7 +22,7 @@ fn match_wild_err_arm() {
         Ok(_) => println!("ok"),
         Err(_) => {
             panic!();
-        },
+        }
     }
 
     match x {
@@ -58,7 +58,7 @@ fn match_wild_err_arm() {
         Ok(_) => println!("ok"),
         Err(_) => {
             unreachable!();
-        },
+        }
     }
 }
 

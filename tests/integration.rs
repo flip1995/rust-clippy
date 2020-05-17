@@ -8,10 +8,8 @@ use std::process::Command;
 fn integration_test() {
     let repo_name = env::var("INTEGRATION").expect("`INTEGRATION` var not set");
     let repo_url = format!("https://github.com/{}", repo_name);
-    let crate_name = repo_name
-        .split('/')
-        .nth(1)
-        .expect("repo name should have format `<org>/<name>`");
+    let crate_name =
+        repo_name.split('/').nth(1).expect("repo name should have format `<org>/<name>`");
 
     let mut repo_dir = tempfile::tempdir().expect("couldn't create temp dir").into_path();
     repo_dir.push(crate_name);
@@ -50,12 +48,10 @@ fn integration_test() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     if stderr.contains("internal compiler error") {
-        let backtrace_start = stderr
-            .find("thread 'rustc' panicked at")
-            .expect("start of backtrace not found");
-        let backtrace_end = stderr
-            .rfind("error: internal compiler error")
-            .expect("end of backtrace not found");
+        let backtrace_start =
+            stderr.find("thread 'rustc' panicked at").expect("start of backtrace not found");
+        let backtrace_end =
+            stderr.rfind("error: internal compiler error").expect("end of backtrace not found");
 
         panic!(
             "internal compiler error\nBacktrace:\n\n{}",

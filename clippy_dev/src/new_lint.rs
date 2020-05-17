@@ -10,7 +10,11 @@ use std::path::Path;
 /// # Errors
 ///
 /// This function errors, if the files couldn't be created
-pub fn create(pass: Option<&str>, lint_name: Option<&str>, category: Option<&str>) -> Result<(), io::Error> {
+pub fn create(
+    pass: Option<&str>,
+    lint_name: Option<&str>,
+    category: Option<&str>,
+) -> Result<(), io::Error> {
     let pass = pass.expect("`pass` argument is validated by clap");
     let lint_name = lint_name.expect("`name` argument is validated by clap");
     let category = category.expect("`category` argument is validated by clap");
@@ -22,7 +26,7 @@ pub fn create(pass: Option<&str>, lint_name: Option<&str>, category: Option<&str
                 "late" => ("LateLintPass", "<'_, '_>", "use rustc_hir::*;", "LateContext"),
                 _ => {
                     unreachable!("`pass_type` should only ever be `early` or `late`!");
-                },
+                }
             };
 
             let camel_case_name = to_camel_case(lint_name);
@@ -52,11 +56,8 @@ pub fn create(pass: Option<&str>, lint_name: Option<&str>, category: Option<&str
                 ));
             }
             Ok(())
-        },
-        Err(e) => Err(io::Error::new(
-            ErrorKind::Other,
-            format!("Unable to create lint: {}", e),
-        )),
+        }
+        Err(e) => Err(io::Error::new(ErrorKind::Other, format!("Unable to create lint: {}", e))),
     }
 }
 
@@ -64,10 +65,8 @@ fn open_files(lint_name: &str) -> Result<(File, File), io::Error> {
     let project_root = clippy_project_root();
 
     let test_file_path = project_root.join("tests").join("ui").join(format!("{}.rs", lint_name));
-    let lint_file_path = project_root
-        .join("clippy_lints")
-        .join("src")
-        .join(format!("{}.rs", lint_name));
+    let lint_file_path =
+        project_root.join("clippy_lints").join("src").join(format!("{}.rs", lint_name));
 
     if Path::new(&test_file_path).exists() {
         return Err(io::Error::new(

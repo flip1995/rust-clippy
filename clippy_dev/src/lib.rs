@@ -51,7 +51,13 @@ pub struct Lint {
 
 impl Lint {
     #[must_use]
-    pub fn new(name: &str, group: &str, desc: &str, deprecation: Option<&str>, module: &str) -> Self {
+    pub fn new(
+        name: &str,
+        group: &str,
+        desc: &str,
+        deprecation: Option<&str>,
+        module: &str,
+    ) -> Self {
         Self {
             name: name.to_lowercase(),
             group: group.to_string(),
@@ -225,7 +231,8 @@ pub fn replace_region_in_file<F>(
 where
     F: FnOnce() -> Vec<String>,
 {
-    let contents = fs::read_to_string(path).unwrap_or_else(|e| panic!("Cannot read from {}: {}", path.display(), e));
+    let contents = fs::read_to_string(path)
+        .unwrap_or_else(|e| panic!("Cannot read from {}: {}", path.display(), e));
     let file_change = replace_region_in_text(&contents, start, end, replace_start, replacements);
 
     if write_back {
@@ -261,7 +268,13 @@ where
 ///     .new_lines;
 /// assert_eq!("replace_start\na different\ntext\nreplace_end", result);
 /// ```
-pub fn replace_region_in_text<F>(text: &str, start: &str, end: &str, replace_start: bool, replacements: F) -> FileChange
+pub fn replace_region_in_text<F>(
+    text: &str,
+    start: &str,
+    end: &str,
+    replace_start: bool,
+    replacements: F,
+) -> FileChange
 where
     F: FnOnce() -> Vec<String>,
 {
@@ -370,10 +383,8 @@ declare_deprecated_lint! {
 #[test]
 fn test_replace_region() {
     let text = "\nabc\n123\n789\ndef\nghi";
-    let expected = FileChange {
-        changed: true,
-        new_lines: "\nabc\nhello world\ndef\nghi".to_string(),
-    };
+    let expected =
+        FileChange { changed: true, new_lines: "\nabc\nhello world\ndef\nghi".to_string() };
     let result = replace_region_in_text(text, r#"^\s*abc$"#, r#"^\s*def"#, false, || {
         vec!["hello world".to_string()]
     });
@@ -383,10 +394,7 @@ fn test_replace_region() {
 #[test]
 fn test_replace_region_with_start() {
     let text = "\nabc\n123\n789\ndef\nghi";
-    let expected = FileChange {
-        changed: true,
-        new_lines: "\nhello world\ndef\nghi".to_string(),
-    };
+    let expected = FileChange { changed: true, new_lines: "\nhello world\ndef\nghi".to_string() };
     let result = replace_region_in_text(text, r#"^\s*abc$"#, r#"^\s*def"#, true, || {
         vec!["hello world".to_string()]
     });
@@ -396,10 +404,7 @@ fn test_replace_region_with_start() {
 #[test]
 fn test_replace_region_no_changes() {
     let text = "123\n456\n789";
-    let expected = FileChange {
-        changed: false,
-        new_lines: "123\n456\n789".to_string(),
-    };
+    let expected = FileChange { changed: false, new_lines: "123\n456\n789".to_string() };
     let result = replace_region_in_text(text, r#"^\s*123$"#, r#"^\s*456"#, false, || vec![]);
     assert_eq!(expected, result);
 }
@@ -412,13 +417,8 @@ fn test_usable_lints() {
         Lint::new("should_assert_eq2", "internal", "abc", None, "module_name"),
         Lint::new("should_assert_eq2", "internal_style", "abc", None, "module_name"),
     ];
-    let expected = vec![Lint::new(
-        "should_assert_eq2",
-        "Not Deprecated",
-        "abc",
-        None,
-        "module_name",
-    )];
+    let expected =
+        vec![Lint::new("should_assert_eq2", "Not Deprecated", "abc", None, "module_name")];
     assert_eq!(expected, Lint::usable_lints(&lints));
 }
 
@@ -467,13 +467,7 @@ fn test_gen_deprecated() {
             Some("has been superseded by should_assert_eq2"),
             "module_name",
         ),
-        Lint::new(
-            "another_deprecated",
-            "group2",
-            "abc",
-            Some("will be removed"),
-            "module_name",
-        ),
+        Lint::new("another_deprecated", "group2", "abc", Some("will be removed"), "module_name"),
     ];
     let expected: Vec<String> = vec![
         "    store.register_removed(",

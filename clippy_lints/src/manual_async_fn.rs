@@ -4,8 +4,8 @@ use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::intravisit::FnKind;
 use rustc_hir::{
-    AsyncGeneratorKind, Block, Body, Expr, ExprKind, FnDecl, FnRetTy, GeneratorKind, GenericBound, HirId, IsAsync,
-    ItemKind, TraitRef, Ty, TyKind, TypeBindingKind,
+    AsyncGeneratorKind, Block, Body, Expr, ExprKind, FnDecl, FnRetTy, GeneratorKind, GenericBound,
+    HirId, IsAsync, ItemKind, TraitRef, Ty, TyKind, TypeBindingKind,
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
@@ -97,7 +97,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for ManualAsyncFn {
     }
 }
 
-fn future_trait_ref<'tcx>(cx: &LateContext<'_, 'tcx>, ty: &'tcx Ty<'tcx>) -> Option<&'tcx TraitRef<'tcx>> {
+fn future_trait_ref<'tcx>(
+    cx: &LateContext<'_, 'tcx>,
+    ty: &'tcx Ty<'tcx>,
+) -> Option<&'tcx TraitRef<'tcx>> {
     if_chain! {
         if let TyKind::Def(item_id, _) = ty.kind;
         let item = cx.tcx.hir().item(item_id.id);
@@ -129,7 +132,10 @@ fn future_output_ty<'tcx>(trait_ref: &'tcx TraitRef<'tcx>) -> Option<&'tcx Ty<'t
     None
 }
 
-fn desugared_async_block<'tcx>(cx: &LateContext<'_, 'tcx>, block: &'tcx Block<'tcx>) -> Option<&'tcx Body<'tcx>> {
+fn desugared_async_block<'tcx>(
+    cx: &LateContext<'_, 'tcx>,
+    block: &'tcx Block<'tcx>,
+) -> Option<&'tcx Body<'tcx>> {
     if_chain! {
         if let Some(block_expr) = block.expr;
         if let Some(args) = match_function_call(cx, block_expr, &FUTURE_FROM_GENERATOR);
@@ -150,10 +156,10 @@ fn suggested_ret(cx: &LateContext<'_, '_>, output: &Ty<'_>) -> Option<(&'static 
         TyKind::Tup(tys) if tys.is_empty() => {
             let sugg = "remove the return type";
             Some((sugg, "".into()))
-        },
+        }
         _ => {
             let sugg = "return the output of the future directly";
             snippet_opt(cx, output.span).map(|snip| (sugg, format!("-> {}", snip)))
-        },
+        }
     }
 }

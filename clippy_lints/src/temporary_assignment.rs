@@ -31,7 +31,7 @@ fn is_temporary(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
             } else {
                 false
             }
-        },
+        }
         _ => false,
     }
 }

@@ -77,7 +77,11 @@ impl<'a> Sugg<'a> {
     }
 
     /// Same as `hir`, but will use the pre expansion span if the `expr` was in a macro.
-    pub fn hir_with_macro_callsite(cx: &LateContext<'_, '_>, expr: &hir::Expr<'_>, default: &'a str) -> Self {
+    pub fn hir_with_macro_callsite(
+        cx: &LateContext<'_, '_>,
+        expr: &hir::Expr<'_>,
+        default: &'a str,
+    ) -> Self {
         let snippet = snippet_with_macro_callsite(cx, expr.span, default);
 
         Self::hir_from_snippet(cx, expr, snippet)
@@ -85,7 +89,11 @@ impl<'a> Sugg<'a> {
 
     /// Generate a suggestion for an expression with the given snippet. This is used by the `hir_*`
     /// function variants of `Sugg`, since these use different snippet functions.
-    fn hir_from_snippet(cx: &LateContext<'_, '_>, expr: &hir::Expr<'_>, snippet: Cow<'a, str>) -> Self {
+    fn hir_from_snippet(
+        cx: &LateContext<'_, '_>,
+        expr: &hir::Expr<'_>,
+        snippet: Cow<'a, str>,
+    ) -> Self {
         if let Some(range) = higher::range(cx, expr) {
             let op = match range.limits {
                 ast::RangeLimits::HalfOpen => AssocOp::DotDot,
@@ -121,7 +129,9 @@ impl<'a> Sugg<'a> {
             | hir::ExprKind::Err => Sugg::NonParen(snippet),
             hir::ExprKind::Assign(..) => Sugg::BinOp(AssocOp::Assign, snippet),
             hir::ExprKind::AssignOp(op, ..) => Sugg::BinOp(hirbinop2assignop(op), snippet),
-            hir::ExprKind::Binary(op, ..) => Sugg::BinOp(AssocOp::from_ast_binop(higher::binop(op.node)), snippet),
+            hir::ExprKind::Binary(op, ..) => {
+                Sugg::BinOp(AssocOp::from_ast_binop(higher::binop(op.node)), snippet)
+            }
             hir::ExprKind::Cast(..) => Sugg::BinOp(AssocOp::As, snippet),
             hir::ExprKind::Type(..) => Sugg::BinOp(AssocOp::Colon, snippet),
         }
@@ -167,8 +177,12 @@ impl<'a> Sugg<'a> {
             | ast::ExprKind::While(..)
             | ast::ExprKind::Await(..)
             | ast::ExprKind::Err => Sugg::NonParen(snippet),
-            ast::ExprKind::Range(.., RangeLimits::HalfOpen) => Sugg::BinOp(AssocOp::DotDot, snippet),
-            ast::ExprKind::Range(.., RangeLimits::Closed) => Sugg::BinOp(AssocOp::DotDotEq, snippet),
+            ast::ExprKind::Range(.., RangeLimits::HalfOpen) => {
+                Sugg::BinOp(AssocOp::DotDot, snippet)
+            }
+            ast::ExprKind::Range(.., RangeLimits::Closed) => {
+                Sugg::BinOp(AssocOp::DotDotEq, snippet)
+            }
             ast::ExprKind::Assign(..) => Sugg::BinOp(AssocOp::Assign, snippet),
             ast::ExprKind::AssignOp(op, ..) => Sugg::BinOp(astbinop2assignop(op), snippet),
             ast::ExprKind::Binary(op, ..) => Sugg::BinOp(AssocOp::from_ast_binop(op.node), snippet),
@@ -255,7 +269,7 @@ impl<'a> Sugg<'a> {
                 } else {
                     Sugg::NonParen(format!("({})", sugg).into())
                 }
-            },
+            }
             Sugg::BinOp(_, sugg) => Sugg::NonParen(format!("({})", sugg).into()),
         }
     }
@@ -299,11 +313,7 @@ impl<T> ParenHelper<T> {
 
 impl<T: Display> Display for ParenHelper<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        if self.paren {
-            write!(f, "({})", self.wrapped)
-        } else {
-            self.wrapped.fmt(f)
-        }
+        if self.paren { write!(f, "({})", self.wrapped) } else { self.wrapped.fmt(f) }
     }
 }
 
@@ -332,7 +342,11 @@ pub fn make_assoc(op: AssocOp, lhs: &Sugg<'_>, rhs: &Sugg<'_>) -> Sugg<'static> 
     fn is_arith(op: &AssocOp) -> bool {
         matches!(
             *op,
-            AssocOp::Add | AssocOp::Subtract | AssocOp::Multiply | AssocOp::Divide | AssocOp::Modulus
+            AssocOp::Add
+                | AssocOp::Subtract
+                | AssocOp::Multiply
+                | AssocOp::Divide
+                | AssocOp::Modulus
         )
     }
 
@@ -379,14 +393,13 @@ pub fn make_assoc(op: AssocOp, lhs: &Sugg<'_>, rhs: &Sugg<'_>) -> Sugg<'static> 
         | AssocOp::NotEqual
         | AssocOp::ShiftLeft
         | AssocOp::ShiftRight
-        | AssocOp::Subtract => format!(
-            "{} {} {}",
-            lhs,
-            op.to_ast_binop().expect("Those are AST ops").to_string(),
-            rhs
-        ),
+        | AssocOp::Subtract => {
+            format!("{} {} {}", lhs, op.to_ast_binop().expect("Those are AST ops").to_string(), rhs)
+        }
         AssocOp::Assign => format!("{} = {}", lhs, rhs),
-        AssocOp::AssignOp(op) => format!("{} {}= {}", lhs, token_kind_to_string(&token::BinOp(op)), rhs),
+        AssocOp::AssignOp(op) => {
+            format!("{} {}= {}", lhs, token_kind_to_string(&token::BinOp(op)), rhs)
+        }
         AssocOp::As => format!("{} as {}", lhs, rhs),
         AssocOp::DotDot => format!("{}..{}", lhs, rhs),
         AssocOp::DotDotEq => format!("{}..={}", lhs, rhs),
@@ -424,22 +437,25 @@ enum Associativity {
 #[must_use]
 fn associativity(op: &AssocOp) -> Associativity {
     use rustc_ast::util::parser::AssocOp::{
-        Add, As, Assign, AssignOp, BitAnd, BitOr, BitXor, Colon, Divide, DotDot, DotDotEq, Equal, Greater,
-        GreaterEqual, LAnd, LOr, Less, LessEqual, Modulus, Multiply, NotEqual, ShiftLeft, ShiftRight, Subtract,
+        Add, As, Assign, AssignOp, BitAnd, BitOr, BitXor, Colon, Divide, DotDot, DotDotEq, Equal,
+        Greater, GreaterEqual, LAnd, LOr, Less, LessEqual, Modulus, Multiply, NotEqual, ShiftLeft,
+        ShiftRight, Subtract,
     };
 
     match *op {
         Assign | AssignOp(_) => Associativity::Right,
         Add | BitAnd | BitOr | BitXor | LAnd | LOr | Multiply | As | Colon => Associativity::Both,
-        Divide | Equal | Greater | GreaterEqual | Less | LessEqual | Modulus | NotEqual | ShiftLeft | ShiftRight
-        | Subtract => Associativity::Left,
+        Divide | Equal | Greater | GreaterEqual | Less | LessEqual | Modulus | NotEqual
+        | ShiftLeft | ShiftRight | Subtract => Associativity::Left,
         DotDot | DotDotEq => Associativity::None,
     }
 }
 
 /// Converts a `hir::BinOp` to the corresponding assigning binary operator.
 fn hirbinop2assignop(op: hir::BinOp) -> AssocOp {
-    use rustc_ast::token::BinOpToken::{And, Caret, Minus, Or, Percent, Plus, Shl, Shr, Slash, Star};
+    use rustc_ast::token::BinOpToken::{
+        And, Caret, Minus, Or, Percent, Plus, Shl, Shr, Slash, Star,
+    };
 
     AssocOp::AssignOp(match op.node {
         hir::BinOpKind::Add => Plus,
@@ -493,11 +509,7 @@ fn indentation<T: LintContext>(cx: &T, span: Span) -> Option<String> {
     if let Some(line) = lo.file.get_line(lo.line - 1 /* line numbers in `Loc` are 1-based */) {
         if let Some((pos, _)) = line.char_indices().find(|&(_, c)| c != ' ' && c != '\t') {
             // We can mix char and byte positions here because we only consider `[ \t]`.
-            if lo.col == CharPos(pos) {
-                Some(line[..pos].into())
-            } else {
-                None
-            }
+            if lo.col == CharPos(pos) { Some(line[..pos].into()) } else { None }
         } else {
             None
         }
@@ -538,7 +550,14 @@ pub trait DiagnosticBuilderExt<'a, T: LintContext> {
     ///     bar();
     /// }");
     /// ```
-    fn suggest_prepend_item(&mut self, cx: &T, item: Span, msg: &str, new_item: &str, applicability: Applicability);
+    fn suggest_prepend_item(
+        &mut self,
+        cx: &T,
+        item: Span,
+        msg: &str,
+        new_item: &str,
+        applicability: Applicability,
+    );
 
     /// Suggest to completely remove an item.
     ///
@@ -554,7 +573,9 @@ pub trait DiagnosticBuilderExt<'a, T: LintContext> {
     fn suggest_remove_item(&mut self, cx: &T, item: Span, msg: &str, applicability: Applicability);
 }
 
-impl<'a, 'b, 'c, T: LintContext> DiagnosticBuilderExt<'c, T> for rustc_errors::DiagnosticBuilder<'b> {
+impl<'a, 'b, 'c, T: LintContext> DiagnosticBuilderExt<'c, T>
+    for rustc_errors::DiagnosticBuilder<'b>
+{
     fn suggest_item_with_attr<D: Display + ?Sized>(
         &mut self,
         cx: &T,
@@ -570,7 +591,14 @@ impl<'a, 'b, 'c, T: LintContext> DiagnosticBuilderExt<'c, T> for rustc_errors::D
         }
     }
 
-    fn suggest_prepend_item(&mut self, cx: &T, item: Span, msg: &str, new_item: &str, applicability: Applicability) {
+    fn suggest_prepend_item(
+        &mut self,
+        cx: &T,
+        item: Span,
+        msg: &str,
+        new_item: &str,
+        applicability: Applicability,
+    ) {
         if let Some(indent) = indentation(cx, item) {
             let span = item.with_hi(item.lo());
 
@@ -597,11 +625,14 @@ impl<'a, 'b, 'c, T: LintContext> DiagnosticBuilderExt<'c, T> for rustc_errors::D
         let fmpos = cx.sess().source_map().lookup_byte_offset(hi);
 
         if let Some(ref src) = fmpos.sf.src {
-            let non_whitespace_offset = src[fmpos.pos.to_usize()..].find(|c| c != ' ' && c != '\t' && c != '\n');
+            let non_whitespace_offset =
+                src[fmpos.pos.to_usize()..].find(|c| c != ' ' && c != '\t' && c != '\n');
 
             if let Some(non_whitespace_offset) = non_whitespace_offset {
-                remove_span = remove_span
-                    .with_hi(remove_span.hi() + BytePos(non_whitespace_offset.try_into().expect("offset too large")))
+                remove_span = remove_span.with_hi(
+                    remove_span.hi()
+                        + BytePos(non_whitespace_offset.try_into().expect("offset too large")),
+                )
             }
         }
 

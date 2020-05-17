@@ -65,16 +65,16 @@ pub fn run(check: bool, verbose: bool) {
         match err {
             CliError::CommandFailed(command) => {
                 eprintln!("error: A command failed! `{}`", command);
-            },
+            }
             CliError::IoError(err) => {
                 eprintln!("error: {}", err);
-            },
+            }
             CliError::RustfmtNotInstalled => {
                 eprintln!("error: rustfmt nightly is not installed.");
-            },
+            }
             CliError::WalkDirError(err) => {
                 eprintln!("error: {}", err);
-            },
+            }
         }
     }
 
@@ -87,16 +87,20 @@ pub fn run(check: bool, verbose: bool) {
             eprintln!("Formatting check failed.");
             eprintln!("Run `cargo dev fmt` to update formatting.");
             1
-        },
+        }
         Err(err) => {
             output_err(err);
             1
-        },
+        }
     };
     process::exit(code);
 }
 
-fn format_command(program: impl AsRef<OsStr>, dir: impl AsRef<Path>, args: &[impl AsRef<OsStr>]) -> String {
+fn format_command(
+    program: impl AsRef<OsStr>,
+    dir: impl AsRef<Path>,
+    args: &[impl AsRef<OsStr>],
+) -> String {
     let arg_display: Vec<_> = args.iter().map(|a| escape(a.as_ref().to_string_lossy())).collect();
 
     format!(

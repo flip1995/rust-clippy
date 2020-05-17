@@ -43,7 +43,7 @@ fn arg_value<'a, T: Deref<Target = str>>(
 
         match arg.next().or_else(|| args.next()) {
             Some(v) if pred(v) => return Some(v),
-            _ => {},
+            _ => {}
         }
     }
     None
@@ -147,12 +147,7 @@ Available lint options:
     let print_lints = |lints: &[&Lint]| {
         for lint in lints {
             let name = lint.name.replace("_", "-");
-            println!(
-                "    {}  {:7.7}  {}",
-                padded(&scoped(&name)),
-                lint_level(lint),
-                lint.desc
-            );
+            println!("    {}  {:7.7}  {}", padded(&scoped(&name)), lint_level(lint), lint.desc);
         }
         println!("\n");
     };
@@ -351,14 +346,17 @@ pub fn main() {
 
         // Setting RUSTC_WRAPPER causes Cargo to pass 'rustc' as the first argument.
         // We're invoking the compiler programmatically, so we ignore this/
-        let wrapper_mode = orig_args.get(1).map(Path::new).and_then(Path::file_stem) == Some("rustc".as_ref());
+        let wrapper_mode =
+            orig_args.get(1).map(Path::new).and_then(Path::file_stem) == Some("rustc".as_ref());
 
         if wrapper_mode {
             // we still want to be able to invoke it normally though
             orig_args.remove(1);
         }
 
-        if !wrapper_mode && (orig_args.iter().any(|a| a == "--help" || a == "-h") || orig_args.len() == 1) {
+        if !wrapper_mode
+            && (orig_args.iter().any(|a| a == "--help" || a == "-h") || orig_args.len() == 1)
+        {
             display_help();
             exit(0);
         }
@@ -395,13 +393,11 @@ pub fn main() {
         if clippy_enabled {
             args.extend(vec!["--cfg".into(), r#"feature="cargo-clippy""#.into()]);
             if let Ok(extra_args) = env::var("CLIPPY_ARGS") {
-                args.extend(extra_args.split("__CLIPPY_HACKERY__").filter_map(|s| {
-                    if s.is_empty() {
-                        None
-                    } else {
-                        Some(s.to_string())
-                    }
-                }));
+                args.extend(
+                    extra_args
+                        .split("__CLIPPY_HACKERY__")
+                        .filter_map(|s| if s.is_empty() { None } else { Some(s.to_string()) }),
+                );
             }
         }
         let mut clippy = ClippyCallbacks;

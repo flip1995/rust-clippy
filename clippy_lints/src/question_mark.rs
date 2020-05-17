@@ -7,8 +7,8 @@ use rustc_session::{declare_lint_pass, declare_tool_lint};
 
 use crate::utils::sugg::Sugg;
 use crate::utils::{
-    higher, is_type_diagnostic_item, match_def_path, match_qpath, paths, snippet_with_applicability,
-    span_lint_and_sugg, SpanlessEq,
+    higher, is_type_diagnostic_item, match_def_path, match_qpath, paths,
+    snippet_with_applicability, span_lint_and_sugg, SpanlessEq,
 };
 
 declare_clippy_lint! {
@@ -154,7 +154,7 @@ impl QuestionMark {
                 }
 
                 false
-            },
+            }
             ExprKind::Ret(Some(ref expr)) => Self::expression_returns_none(cx, expr),
             ExprKind::Path(ref qp) => {
                 if let Res::Def(DefKind::Ctor(def::CtorOf::Variant, def::CtorKind::Const), def_id) =
@@ -164,7 +164,7 @@ impl QuestionMark {
                 }
 
                 false
-            },
+            }
             _ => false,
         }
     }

@@ -5,7 +5,9 @@ use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 
-use crate::utils::{any_parent_is_automatically_derived, match_def_path, paths, span_lint_and_sugg};
+use crate::utils::{
+    any_parent_is_automatically_derived, match_def_path, paths, span_lint_and_sugg,
+};
 
 declare_clippy_lint! {
     /// **What it does:** Checks for literal calls to `Default::default()`.

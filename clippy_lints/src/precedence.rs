@@ -79,7 +79,7 @@ impl EarlyLintPass for Precedence {
                         snippet_with_applicability(cx, right.span, "..", &mut applicability)
                     );
                     span_sugg(expr, sugg, applicability);
-                },
+                }
                 (true, false) => {
                     let sugg = format!(
                         "({}) {} {}",
@@ -88,7 +88,7 @@ impl EarlyLintPass for Precedence {
                         snippet_with_applicability(cx, right.span, "..", &mut applicability)
                     );
                     span_sugg(expr, sugg, applicability);
-                },
+                }
                 (false, true) => {
                     let sugg = format!(
                         "{} {} ({})",
@@ -97,7 +97,7 @@ impl EarlyLintPass for Precedence {
                         snippet_with_applicability(cx, right.span, "..", &mut applicability)
                     );
                     span_sugg(expr, sugg, applicability);
-                },
+                }
                 (false, false) => (),
             }
         }
@@ -124,11 +124,16 @@ impl EarlyLintPass for Precedence {
                                     "consider adding parentheses to clarify your intent",
                                     format!(
                                         "-({})",
-                                        snippet_with_applicability(cx, rhs.span, "..", &mut applicability)
+                                        snippet_with_applicability(
+                                            cx,
+                                            rhs.span,
+                                            "..",
+                                            &mut applicability
+                                        )
                                     ),
                                     applicability,
                                 );
-                            },
+                            }
                             _ => (),
                         }
                     }

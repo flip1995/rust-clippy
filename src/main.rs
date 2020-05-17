@@ -77,11 +77,11 @@ impl ClippyCmd {
                 "--fix" => {
                     cargo_subcommand = "fix";
                     continue;
-                },
+                }
                 "--" => break,
                 // Cover -Zunstable-options and -Z unstable-options
                 s if s.ends_with("unstable-options") => unstable_options = true,
-                _ => {},
+                _ => {}
             }
 
             args.push(arg);
@@ -97,22 +97,14 @@ impl ClippyCmd {
             args.insert(0, "+nightly".to_string());
         }
 
-        let clippy_args: String = old_args.map(|arg| format!("{}__CLIPPY_HACKERY__", arg)).collect();
+        let clippy_args: String =
+            old_args.map(|arg| format!("{}__CLIPPY_HACKERY__", arg)).collect();
 
-        ClippyCmd {
-            unstable_options,
-            cargo_subcommand,
-            args,
-            clippy_args,
-        }
+        ClippyCmd { unstable_options, cargo_subcommand, args, clippy_args }
     }
 
     fn path_env(&self) -> &'static str {
-        if self.unstable_options {
-            "RUSTC_WORKSPACE_WRAPPER"
-        } else {
-            "RUSTC_WRAPPER"
-        }
+        if self.unstable_options { "RUSTC_WORKSPACE_WRAPPER" } else { "RUSTC_WRAPPER" }
     }
 
     fn path() -> PathBuf {
@@ -132,12 +124,7 @@ impl ClippyCmd {
             .map(|_| {
                 env::var_os("CARGO_MANIFEST_DIR").map_or_else(
                     || std::ffi::OsString::from("clippy_dogfood"),
-                    |d| {
-                        std::path::PathBuf::from(d)
-                            .join("target")
-                            .join("dogfood")
-                            .into_os_string()
-                    },
+                    |d| std::path::PathBuf::from(d).join("target").join("dogfood").into_os_string(),
                 )
             })
             .map(|p| ("CARGO_TARGET_DIR", p))
@@ -164,17 +151,10 @@ where
 
     let mut cmd = cmd.into_std_cmd();
 
-    let exit_status = cmd
-        .spawn()
-        .expect("could not run cargo")
-        .wait()
-        .expect("failed to wait for cargo?");
+    let exit_status =
+        cmd.spawn().expect("could not run cargo").wait().expect("failed to wait for cargo?");
 
-    if exit_status.success() {
-        Ok(())
-    } else {
-        Err(exit_status.code().unwrap_or(-1))
-    }
+    if exit_status.success() { Ok(()) } else { Err(exit_status.code().unwrap_or(-1)) }
 }
 
 #[cfg(test)]
@@ -190,9 +170,8 @@ mod tests {
 
     #[test]
     fn fix_unstable() {
-        let args = "cargo clippy --fix -Zunstable-options"
-            .split_whitespace()
-            .map(ToString::to_string);
+        let args =
+            "cargo clippy --fix -Zunstable-options".split_whitespace().map(ToString::to_string);
         let cmd = ClippyCmd::new(args);
         assert_eq!("fix", cmd.cargo_subcommand);
         assert_eq!("RUSTC_WORKSPACE_WRAPPER", cmd.path_env());
@@ -209,9 +188,7 @@ mod tests {
 
     #[test]
     fn check_unstable() {
-        let args = "cargo clippy -Zunstable-options"
-            .split_whitespace()
-            .map(ToString::to_string);
+        let args = "cargo clippy -Zunstable-options".split_whitespace().map(ToString::to_string);
         let cmd = ClippyCmd::new(args);
         assert_eq!("check", cmd.cargo_subcommand);
         assert_eq!("RUSTC_WORKSPACE_WRAPPER", cmd.path_env());

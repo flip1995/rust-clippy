@@ -3,7 +3,9 @@
 //! This lint is **warn** by default
 
 use crate::utils::sugg::Sugg;
-use crate::utils::{higher, parent_node_is_if_expr, snippet_with_applicability, span_lint, span_lint_and_sugg};
+use crate::utils::{
+    higher, parent_node_is_if_expr, snippet_with_applicability, span_lint, span_lint_and_sugg,
+};
 use if_chain::if_chain;
 use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;
@@ -74,7 +76,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
         if let Some((ref pred, ref then_block, Some(ref else_expr))) = higher::if_block(&e) {
             let reduce = |ret, not| {
                 let mut applicability = Applicability::MachineApplicable;
-                let snip = Sugg::hir_with_applicability(cx, pred, "<predicate>", &mut applicability);
+                let snip =
+                    Sugg::hir_with_applicability(cx, pred, "<predicate>", &mut applicability);
                 let mut snip = if not { !snip } else { snip };
 
                 if ret {
@@ -104,7 +107,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
                             e.span,
                             "this if-then-else expression will always return true",
                         );
-                    },
+                    }
                     (RetBool(false), RetBool(false)) | (Bool(false), Bool(false)) => {
                         span_lint(
                             cx,
@@ -112,7 +115,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NeedlessBool {
                             e.span,
                             "this if-then-else expression will always return false",
                         );
-                    },
+                    }
                     (RetBool(true), RetBool(false)) => reduce(true, false),
                     (Bool(true), Bool(false)) => reduce(false, false),
                     (RetBool(false), RetBool(true)) => reduce(true, true),
@@ -144,16 +147,33 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BoolComparison {
                         |h: Sugg<'_>| !h,
                         "equality checks against false can be replaced by a negation",
                     ));
-                    check_comparison(cx, e, true_case, false_case, true_case, false_case, ignore_no_literal)
-                },
+                    check_comparison(
+                        cx,
+                        e,
+                        true_case,
+                        false_case,
+                        true_case,
+                        false_case,
+                        ignore_no_literal,
+                    )
+                }
                 BinOpKind::Ne => {
                     let true_case = Some((
                         |h: Sugg<'_>| !h,
                         "inequality checks against true can be replaced by a negation",
                     ));
-                    let false_case = Some((|h| h, "inequality checks against false are unnecessary"));
-                    check_comparison(cx, e, true_case, false_case, true_case, false_case, ignore_no_literal)
-                },
+                    let false_case =
+                        Some((|h| h, "inequality checks against false are unnecessary"));
+                    check_comparison(
+                        cx,
+                        e,
+                        true_case,
+                        false_case,
+                        true_case,
+                        false_case,
+                        ignore_no_literal,
+                    )
+                }
                 BinOpKind::Lt => check_comparison(
                     cx,
                     e,
@@ -207,7 +227,10 @@ fn is_unary_not(e: &Expr<'_>) -> (bool, Span) {
     (false, e.span)
 }
 
-fn one_side_is_unary_not<'tcx>(left_side: &'tcx Expr<'_>, right_side: &'tcx Expr<'_>) -> ExpressionInfoWithSpan {
+fn one_side_is_unary_not<'tcx>(
+    left_side: &'tcx Expr<'_>,
+    right_side: &'tcx Expr<'_>,
+) -> ExpressionInfoWithSpan {
     let left = is_unary_not(left_side);
     let right = is_unary_not(right_side);
 
@@ -245,8 +268,18 @@ fn check_comparison<'a, 'tcx>(
                         "try simplifying it as shown",
                         format!(
                             "{} != {}",
-                            snippet_with_applicability(cx, expression_info.left_span, "..", &mut applicability),
-                            snippet_with_applicability(cx, expression_info.right_span, "..", &mut applicability)
+                            snippet_with_applicability(
+                                cx,
+                                expression_info.left_span,
+                                "..",
+                                &mut applicability
+                            ),
+                            snippet_with_applicability(
+                                cx,
+                                expression_info.right_span,
+                                "..",
+                                &mut applicability
+                            )
                         ),
                         applicability,
                     )
@@ -267,8 +300,10 @@ fn check_comparison<'a, 'tcx>(
                     suggest_bool_comparison(cx, e, left_side, applicability, m, h)
                 }),
                 (Other, Other) => no_literal.map_or((), |(h, m)| {
-                    let left_side = Sugg::hir_with_applicability(cx, left_side, "..", &mut applicability);
-                    let right_side = Sugg::hir_with_applicability(cx, right_side, "..", &mut applicability);
+                    let left_side =
+                        Sugg::hir_with_applicability(cx, left_side, "..", &mut applicability);
+                    let right_side =
+                        Sugg::hir_with_applicability(cx, right_side, "..", &mut applicability);
                     span_lint_and_sugg(
                         cx,
                         BOOL_COMPARISON,
@@ -324,7 +359,7 @@ fn fetch_bool_block(block: &Block<'_>) -> Expression {
             } else {
                 Expression::Other
             }
-        },
+        }
         _ => Expression::Other,
     }
 }
@@ -338,7 +373,7 @@ fn fetch_bool_expr(expr: &Expr<'_>) -> Expression {
             } else {
                 Expression::Other
             }
-        },
+        }
         ExprKind::Ret(Some(ref expr)) => match fetch_bool_expr(expr) {
             Expression::Bool(value) => Expression::RetBool(value),
             _ => Expression::Other,

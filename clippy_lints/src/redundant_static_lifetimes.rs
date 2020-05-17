@@ -38,18 +38,21 @@ impl RedundantStaticLifetimes {
             // Be careful of nested structures (arrays and tuples)
             TyKind::Array(ref ty, _) => {
                 self.visit_type(&*ty, cx, reason);
-            },
+            }
             TyKind::Tup(ref tup) => {
                 for tup_ty in tup {
                     self.visit_type(&*tup_ty, cx, reason);
                 }
-            },
+            }
             // This is what we are looking for !
             TyKind::Rptr(ref optional_lifetime, ref borrow_type) => {
                 // Match the 'static lifetime
                 if let Some(lifetime) = *optional_lifetime {
                     match borrow_type.ty.kind {
-                        TyKind::Path(..) | TyKind::Slice(..) | TyKind::Array(..) | TyKind::Tup(..) => {
+                        TyKind::Path(..)
+                        | TyKind::Slice(..)
+                        | TyKind::Array(..)
+                        | TyKind::Tup(..) => {
                             if lifetime.ident.name == rustc_span::symbol::kw::StaticLifetime {
                                 let snip = snippet(cx, borrow_type.ty.span, "<type>");
                                 let sugg = format!("&{}", snip);
@@ -68,16 +71,16 @@ impl RedundantStaticLifetimes {
                                     },
                                 );
                             }
-                        },
-                        _ => {},
+                        }
+                        _ => {}
                     }
                 }
                 self.visit_type(&*borrow_type.ty, cx, reason);
-            },
+            }
             TyKind::Slice(ref ty) => {
                 self.visit_type(ty, cx, reason);
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

@@ -38,12 +38,20 @@ const DROP_BOUNDS_SUMMARY: &str = "Bounds of the form `T: Drop` are useless. \
 declare_lint_pass!(DropBounds => [DROP_BOUNDS]);
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for DropBounds {
-    fn check_generic_param(&mut self, cx: &rustc_lint::LateContext<'a, 'tcx>, p: &'tcx GenericParam<'_>) {
+    fn check_generic_param(
+        &mut self,
+        cx: &rustc_lint::LateContext<'a, 'tcx>,
+        p: &'tcx GenericParam<'_>,
+    ) {
         for bound in p.bounds.iter() {
             lint_bound(cx, bound);
         }
     }
-    fn check_where_predicate(&mut self, cx: &rustc_lint::LateContext<'a, 'tcx>, p: &'tcx WherePredicate<'_>) {
+    fn check_where_predicate(
+        &mut self,
+        cx: &rustc_lint::LateContext<'a, 'tcx>,
+        p: &'tcx WherePredicate<'_>,
+    ) {
         if let WherePredicate::BoundPredicate(WhereBoundPredicate { bounds, .. }) = p {
             for bound in *bounds {
                 lint_bound(cx, bound);

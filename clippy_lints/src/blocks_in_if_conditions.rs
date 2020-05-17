@@ -1,4 +1,7 @@
-use crate::utils::{differing_macro_contexts, higher, snippet_block_with_applicability, span_lint, span_lint_and_sugg};
+use crate::utils::{
+    differing_macro_contexts, higher, snippet_block_with_applicability, span_lint,
+    span_lint_and_sugg,
+};
 use rustc_errors::Applicability;
 use rustc_hir::intravisit::{walk_expr, NestedVisitorMap, Visitor};
 use rustc_hir::{BlockCheckMode, Expr, ExprKind};
@@ -83,7 +86,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BlocksInIfConditions {
                         if let Some(ex) = &block.expr {
                             // don't dig into the expression here, just suggest that they remove
                             // the block
-                            if expr.span.from_expansion() || differing_macro_contexts(expr.span, ex.span) {
+                            if expr.span.from_expansion()
+                                || differing_macro_contexts(expr.span, ex.span)
+                            {
                                 return;
                             }
                             let mut applicability = Applicability::MachineApplicable;
@@ -107,7 +112,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BlocksInIfConditions {
                             );
                         }
                     } else {
-                        let span = block.expr.as_ref().map_or_else(|| block.stmts[0].span, |e| e.span);
+                        let span =
+                            block.expr.as_ref().map_or_else(|| block.stmts[0].span, |e| e.span);
                         if span.from_expansion() || differing_macro_contexts(expr.span, span) {
                             return;
                         }

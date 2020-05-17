@@ -7,7 +7,9 @@ use rustc_ast::walk_list;
 use rustc_data_structures::fx::FxHashMap;
 use rustc_hir as hir;
 use rustc_hir::intravisit::{NestedVisitorMap, Visitor};
-use rustc_hir::{BindingAnnotation, Block, Expr, ExprKind, Pat, PatKind, QPath, Stmt, StmtKind, TyKind};
+use rustc_hir::{
+    BindingAnnotation, Block, Expr, ExprKind, Pat, PatKind, QPath, Stmt, StmtKind, TyKind,
+};
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::hir::map::Map;
 use rustc_session::Session;
@@ -102,7 +104,11 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Author {
         done();
     }
 
-    fn check_struct_field(&mut self, cx: &LateContext<'a, 'tcx>, field: &'tcx hir::StructField<'_>) {
+    fn check_struct_field(
+        &mut self,
+        cx: &LateContext<'a, 'tcx>,
+        field: &'tcx hir::StructField<'_>,
+    ) {
         if !has_attr(cx.sess(), &field.attrs) {
             return;
         }
@@ -151,10 +157,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Author {
 impl PrintVisitor {
     #[must_use]
     fn new(s: &'static str) -> Self {
-        Self {
-            ids: FxHashMap::default(),
-            current: s.to_owned(),
-        }
+        Self { ids: FxHashMap::default(), current: s.to_owned() }
     }
 
     fn next(&mut self, s: &'static str) -> String {
@@ -165,12 +168,12 @@ impl PrintVisitor {
                 let val = occ.get_mut();
                 *val += 1;
                 format!("{}{}", s, *val)
-            },
+            }
             // not there: insert and return name as given
             Vacant(vac) => {
                 vac.insert(0);
                 s.to_owned()
-            },
+            }
         }
     }
 
@@ -228,7 +231,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("Box(ref {}) = {};", inner_pat, current);
                 self.current = inner_pat;
                 self.visit_expr(inner);
-            },
+            }
             ExprKind::Array(ref elements) => {
                 let elements_pat = self.next("elements");
                 println!("Array(ref {}) = {};", elements_pat, current);
@@ -237,7 +240,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     self.current = format!("{}[{}]", elements_pat, i);
                     self.visit_expr(element);
                 }
-            },
+            }
             ExprKind::Call(ref func, ref args) => {
                 let func_pat = self.next("func");
                 let args_pat = self.next("args");
@@ -249,11 +252,13 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     self.current = format!("{}[{}]", args_pat, i);
                     self.visit_expr(arg);
                 }
-            },
+            }
             ExprKind::MethodCall(ref _method_name, ref _generics, ref _args) => {
                 println!("MethodCall(ref method_name, ref generics, ref args) = {};", current);
-                println!("    // unimplemented: `ExprKind::MethodCall` is not further destructured at the moment");
-            },
+                println!(
+                    "    // unimplemented: `ExprKind::MethodCall` is not further destructured at the moment"
+                );
+            }
             ExprKind::Tup(ref elements) => {
                 let elements_pat = self.next("elements");
                 println!("Tup(ref {}) = {};", elements_pat, current);
@@ -262,7 +267,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     self.current = format!("{}[{}]", elements_pat, i);
                     self.visit_expr(element);
                 }
-            },
+            }
             ExprKind::Binary(ref op, ref left, ref right) => {
                 let op_pat = self.next("op");
                 let left_pat = self.next("left");
@@ -276,23 +281,33 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 self.visit_expr(left);
                 self.current = right_pat;
                 self.visit_expr(right);
-            },
+            }
             ExprKind::Unary(ref op, ref inner) => {
                 let inner_pat = self.next("inner");
                 println!("Unary(UnOp::{:?}, ref {}) = {};", op, inner_pat, current);
                 self.current = inner_pat;
                 self.visit_expr(inner);
-            },
+            }
             ExprKind::Lit(ref lit) => {
                 let lit_pat = self.next("lit");
                 println!("Lit(ref {}) = {};", lit_pat, current);
                 match lit.node {
-                    LitKind::Bool(val) => println!("    if let LitKind::Bool({:?}) = {}.node;", val, lit_pat),
-                    LitKind::Char(c) => println!("    if let LitKind::Char({:?}) = {}.node;", c, lit_pat),
-                    LitKind::Err(val) => println!("    if let LitKind::Err({}) = {}.node;", val, lit_pat),
-                    LitKind::Byte(b) => println!("    if let LitKind::Byte({}) = {}.node;", b, lit_pat),
+                    LitKind::Bool(val) => {
+                        println!("    if let LitKind::Bool({:?}) = {}.node;", val, lit_pat)
+                    }
+                    LitKind::Char(c) => {
+                        println!("    if let LitKind::Char({:?}) = {}.node;", c, lit_pat)
+                    }
+                    LitKind::Err(val) => {
+                        println!("    if let LitKind::Err({}) = {}.node;", val, lit_pat)
+                    }
+                    LitKind::Byte(b) => {
+                        println!("    if let LitKind::Byte({}) = {}.node;", b, lit_pat)
+                    }
                     // FIXME: also check int type
-                    LitKind::Int(i, _) => println!("    if let LitKind::Int({}, _) = {}.node;", i, lit_pat),
+                    LitKind::Int(i, _) => {
+                        println!("    if let LitKind::Int({}, _) = {}.node;", i, lit_pat)
+                    }
                     LitKind::Float(_, LitFloatType::Suffixed(_)) => println!(
                         "    if let LitKind::Float(_, LitFloatType::Suffixed(_)) = {}.node;",
                         lit_pat
@@ -303,16 +318,19 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     ),
                     LitKind::ByteStr(ref vec) => {
                         let vec_pat = self.next("vec");
-                        println!("    if let LitKind::ByteStr(ref {}) = {}.node;", vec_pat, lit_pat);
+                        println!(
+                            "    if let LitKind::ByteStr(ref {}) = {}.node;",
+                            vec_pat, lit_pat
+                        );
                         println!("    if let [{:?}] = **{};", vec, vec_pat);
-                    },
+                    }
                     LitKind::Str(ref text, _) => {
                         let str_pat = self.next("s");
                         println!("    if let LitKind::Str(ref {}, _) = {}.node;", str_pat, lit_pat);
                         println!("    if {}.as_str() == {:?}", str_pat, &*text.as_str())
-                    },
+                    }
                 }
-            },
+            }
             ExprKind::Cast(ref expr, ref ty) => {
                 let cast_pat = self.next("expr");
                 let cast_ty = self.next("cast_ty");
@@ -326,13 +344,13 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 }
                 self.current = cast_pat;
                 self.visit_expr(expr);
-            },
+            }
             ExprKind::Type(ref expr, ref _ty) => {
                 let cast_pat = self.next("expr");
                 println!("Type(ref {}, _) = {};", cast_pat, current);
                 self.current = cast_pat;
                 self.visit_expr(expr);
-            },
+            }
             ExprKind::Loop(ref body, _, desugaring) => {
                 let body_pat = self.next("body");
                 let des = loop_desugaring_name(desugaring);
@@ -340,7 +358,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("Loop(ref {}, ref {}, {}) = {};", body_pat, label_pat, des, current);
                 self.current = body_pat;
                 self.visit_block(body);
-            },
+            }
             ExprKind::Match(ref expr, ref arms, desugaring) => {
                 let des = desugaring_name(desugaring);
                 let expr_pat = self.next("expr");
@@ -358,44 +376,46 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                         match guard {
                             hir::Guard::If(ref if_expr) => {
                                 let if_expr_pat = self.next("expr");
-                                println!("    if let Guard::If(ref {}) = {};", if_expr_pat, guard_pat);
+                                println!(
+                                    "    if let Guard::If(ref {}) = {};",
+                                    if_expr_pat, guard_pat
+                                );
                                 self.current = if_expr_pat;
                                 self.visit_expr(if_expr);
-                            },
+                            }
                         }
                     }
                     self.current = format!("{}[{}].pat", arms_pat, i);
                     self.visit_pat(&arm.pat);
                 }
-            },
+            }
             ExprKind::Closure(ref _capture_clause, ref _func, _, _, _) => {
                 println!("Closure(ref capture_clause, ref func, _, _, _) = {};", current);
-                println!("    // unimplemented: `ExprKind::Closure` is not further destructured at the moment");
-            },
+                println!(
+                    "    // unimplemented: `ExprKind::Closure` is not further destructured at the moment"
+                );
+            }
             ExprKind::Yield(ref sub, _) => {
                 let sub_pat = self.next("sub");
                 println!("Yield(ref sub) = {};", current);
                 self.current = sub_pat;
                 self.visit_expr(sub);
-            },
+            }
             ExprKind::Block(ref block, _) => {
                 let block_pat = self.next("block");
                 println!("Block(ref {}) = {};", block_pat, current);
                 self.current = block_pat;
                 self.visit_block(block);
-            },
+            }
             ExprKind::Assign(ref target, ref value, _) => {
                 let target_pat = self.next("target");
                 let value_pat = self.next("value");
-                println!(
-                    "Assign(ref {}, ref {}, ref _span) = {};",
-                    target_pat, value_pat, current
-                );
+                println!("Assign(ref {}, ref {}, ref _span) = {};", target_pat, value_pat, current);
                 self.current = target_pat;
                 self.visit_expr(target);
                 self.current = value_pat;
                 self.visit_expr(value);
-            },
+            }
             ExprKind::AssignOp(ref op, ref target, ref value) => {
                 let op_pat = self.next("op");
                 let target_pat = self.next("target");
@@ -409,7 +429,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 self.visit_expr(target);
                 self.current = value_pat;
                 self.visit_expr(value);
-            },
+            }
             ExprKind::Field(ref object, ref field_ident) => {
                 let obj_pat = self.next("object");
                 let field_name_pat = self.next("field_name");
@@ -417,7 +437,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("    if {}.as_str() == {:?}", field_name_pat, field_ident.as_str());
                 self.current = obj_pat;
                 self.visit_expr(object);
-            },
+            }
             ExprKind::Index(ref object, ref index) => {
                 let object_pat = self.next("object");
                 let index_pat = self.next("index");
@@ -426,13 +446,13 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 self.visit_expr(object);
                 self.current = index_pat;
                 self.visit_expr(index);
-            },
+            }
             ExprKind::Path(ref path) => {
                 let path_pat = self.next("path");
                 println!("Path(ref {}) = {};", path_pat, current);
                 self.current = path_pat;
                 self.print_qpath(path);
-            },
+            }
             ExprKind::AddrOf(kind, mutability, ref inner) => {
                 let inner_pat = self.next("inner");
                 println!(
@@ -441,24 +461,27 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 );
                 self.current = inner_pat;
                 self.visit_expr(inner);
-            },
+            }
             ExprKind::Break(ref _destination, ref opt_value) => {
                 let destination_pat = self.next("destination");
                 if let Some(ref value) = *opt_value {
                     let value_pat = self.next("value");
-                    println!("Break(ref {}, Some(ref {})) = {};", destination_pat, value_pat, current);
+                    println!(
+                        "Break(ref {}, Some(ref {})) = {};",
+                        destination_pat, value_pat, current
+                    );
                     self.current = value_pat;
                     self.visit_expr(value);
                 } else {
                     println!("Break(ref {}, None) = {};", destination_pat, current);
                 }
                 // FIXME: implement label printing
-            },
+            }
             ExprKind::Continue(ref _destination) => {
                 let destination_pat = self.next("destination");
                 println!("Again(ref {}) = {};", destination_pat, current);
                 // FIXME: implement label printing
-            },
+            }
             ExprKind::Ret(ref opt_value) => {
                 if let Some(ref value) = *opt_value {
                     let value_pat = self.next("value");
@@ -468,11 +491,13 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 } else {
                     println!("Ret(None) = {};", current);
                 }
-            },
+            }
             ExprKind::LlvmInlineAsm(_) => {
                 println!("LlvmInlineAsm(_) = {};", current);
-                println!("    // unimplemented: `ExprKind::LlvmInlineAsm` is not further destructured at the moment");
-            },
+                println!(
+                    "    // unimplemented: `ExprKind::LlvmInlineAsm` is not further destructured at the moment"
+                );
+            }
             ExprKind::Struct(ref path, ref fields, ref opt_base) => {
                 let path_pat = self.next("path");
                 let fields_pat = self.next("fields");
@@ -491,7 +516,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 self.print_qpath(path);
                 println!("    if {}.len() == {};", fields_pat, fields.len());
                 println!("    // unimplemented: field checks");
-            },
+            }
             // FIXME: compute length (needs type info)
             ExprKind::Repeat(ref value, _) => {
                 let value_pat = self.next("value");
@@ -499,16 +524,16 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("// unimplemented: repeat count check");
                 self.current = value_pat;
                 self.visit_expr(value);
-            },
+            }
             ExprKind::Err => {
                 println!("Err = {}", current);
-            },
+            }
             ExprKind::DropTemps(ref expr) => {
                 let expr_pat = self.next("expr");
                 println!("DropTemps(ref {}) = {};", expr_pat, current);
                 self.current = expr_pat;
                 self.visit_expr(expr);
-            },
+            }
         }
     }
 
@@ -549,25 +574,22 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     println!("Binding({}, _, {}, None) = {};", anno_pat, name_pat, current);
                 }
                 println!("    if {}.as_str() == \"{}\";", name_pat, ident.as_str());
-            },
+            }
             PatKind::Struct(ref path, ref fields, ignore) => {
                 let path_pat = self.next("path");
                 let fields_pat = self.next("fields");
-                println!(
-                    "Struct(ref {}, ref {}, {}) = {};",
-                    path_pat, fields_pat, ignore, current
-                );
+                println!("Struct(ref {}, ref {}, {}) = {};", path_pat, fields_pat, ignore, current);
                 self.current = path_pat;
                 self.print_qpath(path);
                 println!("    if {}.len() == {};", fields_pat, fields.len());
                 println!("    // unimplemented: field checks");
-            },
+            }
             PatKind::Or(ref fields) => {
                 let fields_pat = self.next("fields");
                 println!("Or(ref {}) = {};", fields_pat, current);
                 println!("    if {}.len() == {};", fields_pat, fields.len());
                 println!("    // unimplemented: field checks");
-            },
+            }
             PatKind::TupleStruct(ref path, ref fields, skip_pos) => {
                 let path_pat = self.next("path");
                 let fields_pat = self.next("fields");
@@ -579,37 +601,37 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 self.print_qpath(path);
                 println!("    if {}.len() == {};", fields_pat, fields.len());
                 println!("    // unimplemented: field checks");
-            },
+            }
             PatKind::Path(ref path) => {
                 let path_pat = self.next("path");
                 println!("Path(ref {}) = {};", path_pat, current);
                 self.current = path_pat;
                 self.print_qpath(path);
-            },
+            }
             PatKind::Tuple(ref fields, skip_pos) => {
                 let fields_pat = self.next("fields");
                 println!("Tuple(ref {}, {:?}) = {};", fields_pat, skip_pos, current);
                 println!("    if {}.len() == {};", fields_pat, fields.len());
                 println!("    // unimplemented: field checks");
-            },
+            }
             PatKind::Box(ref pat) => {
                 let pat_pat = self.next("pat");
                 println!("Box(ref {}) = {};", pat_pat, current);
                 self.current = pat_pat;
                 self.visit_pat(pat);
-            },
+            }
             PatKind::Ref(ref pat, muta) => {
                 let pat_pat = self.next("pat");
                 println!("Ref(ref {}, Mutability::{:?}) = {};", pat_pat, muta, current);
                 self.current = pat_pat;
                 self.visit_pat(pat);
-            },
+            }
             PatKind::Lit(ref lit_expr) => {
                 let lit_expr_pat = self.next("lit_expr");
                 println!("Lit(ref {}) = {}", lit_expr_pat, current);
                 self.current = lit_expr_pat;
                 self.visit_expr(lit_expr);
-            },
+            }
             PatKind::Range(ref start, ref end, end_kind) => {
                 let start_pat = self.next("start");
                 let end_pat = self.next("end");
@@ -621,7 +643,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 walk_list!(self, visit_expr, start);
                 self.current = end_pat;
                 walk_list!(self, visit_expr, end);
-            },
+            }
             PatKind::Slice(ref start, ref middle, ref end) => {
                 let start_pat = self.next("start");
                 let end_pat = self.next("end");
@@ -646,7 +668,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                     self.current = format!("{}[{}]", end_pat, i);
                     self.visit_pat(pat);
                 }
-            },
+            }
         }
     }
 
@@ -666,11 +688,11 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 }
                 self.current = format!("{}.pat", local_pat);
                 self.visit_pat(&local.pat);
-            },
+            }
             // An item binding:
             StmtKind::Item(_) => {
                 println!("Item(item_id) = {};", current);
-            },
+            }
 
             // Expr without trailing semi-colon (must have unit type):
             StmtKind::Expr(ref e) => {
@@ -678,7 +700,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("Expr(ref {}, _) = {}", e_pat, current);
                 self.current = e_pat;
                 self.visit_expr(e);
-            },
+            }
 
             // Expr with trailing semi-colon (may have any type):
             StmtKind::Semi(ref e) => {
@@ -686,7 +708,7 @@ impl<'tcx> Visitor<'tcx> for PrintVisitor {
                 println!("Semi(ref {}, _) = {}", e_pat, current);
                 self.current = e_pat;
                 self.visit_expr(e);
-            },
+            }
         }
     }
 
@@ -711,10 +733,9 @@ fn desugaring_name(des: hir::MatchSource) -> String {
             "MatchSource::IfLetDesugar {{ contains_else_clause: {} }}",
             contains_else_clause
         ),
-        hir::MatchSource::IfDesugar { contains_else_clause } => format!(
-            "MatchSource::IfDesugar {{ contains_else_clause: {} }}",
-            contains_else_clause
-        ),
+        hir::MatchSource::IfDesugar { contains_else_clause } => {
+            format!("MatchSource::IfDesugar {{ contains_else_clause: {} }}", contains_else_clause)
+        }
         hir::MatchSource::AwaitDesugar => "MatchSource::AwaitDesugar".to_string(),
     }
 }
@@ -740,7 +761,7 @@ fn print_path(path: &QPath<'_>, first: &mut bool) {
                 }
                 print!("{:?}", segment.ident.as_str());
             }
-        },
+        }
         QPath::TypeRelative(ref ty, ref segment) => match ty.kind {
             hir::TyKind::Path(ref inner_path) => {
                 print_path(inner_path, first);
@@ -750,7 +771,7 @@ fn print_path(path: &QPath<'_>, first: &mut bool) {
                     print!(", ");
                 }
                 print!("{:?}", segment.ident.as_str());
-            },
+            }
             ref other => print!("/* unimplemented: {:?}*/", other),
         },
     }

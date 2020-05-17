@@ -86,21 +86,17 @@ impl<'a> NumericLiteral<'a> {
 
         let (integer, fraction, exponent) = Self::split_digit_parts(sans_prefix, float);
 
-        Self {
-            radix,
-            prefix,
-            integer,
-            fraction,
-            exponent,
-            suffix,
-        }
+        Self { radix, prefix, integer, fraction, exponent, suffix }
     }
 
     pub fn is_decimal(&self) -> bool {
         self.radix == Radix::Decimal
     }
 
-    pub fn split_digit_parts(digits: &str, float: bool) -> (&str, Option<&str>, Option<(char, &str)>) {
+    pub fn split_digit_parts(
+        digits: &str,
+        float: bool,
+    ) -> (&str, Option<&str>, Option<(char, &str)>) {
         let mut integer = digits;
         let mut fraction = None;
         let mut exponent = None;
@@ -111,7 +107,7 @@ impl<'a> NumericLiteral<'a> {
                     '.' => {
                         integer = &digits[..i];
                         fraction = Some(&digits[i + 1..]);
-                    },
+                    }
                     'e' | 'E' => {
                         if integer.len() > i {
                             integer = &digits[..i];
@@ -120,8 +116,8 @@ impl<'a> NumericLiteral<'a> {
                         };
                         exponent = Some((c, &digits[i + 1..]));
                         break;
-                    },
-                    _ => {},
+                    }
+                    _ => {}
                 }
             }
         }
@@ -165,7 +161,13 @@ impl<'a> NumericLiteral<'a> {
         output
     }
 
-    pub fn group_digits(output: &mut String, input: &str, group_size: usize, partial_group_first: bool, pad: bool) {
+    pub fn group_digits(
+        output: &mut String,
+        input: &str,
+        group_size: usize,
+        partial_group_first: bool,
+        pad: bool,
+    ) {
         debug_assert!(group_size > 0);
 
         let mut digits = input.chars().filter(|&c| c != '_');

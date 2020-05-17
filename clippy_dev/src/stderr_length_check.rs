@@ -46,6 +46,6 @@ fn count_linenumbers(filepath: &Path) -> usize {
         Err(e) => {
             eprintln!("Failed to read file: {}", e);
             0
-        },
+        }
     }
 }

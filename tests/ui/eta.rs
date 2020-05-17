@@ -31,8 +31,8 @@ fn main() {
     let e = Some(1u8).map(|a| generic(a));
     let e = Some(1u8).map(generic);
     // See #515
-    let a: Option<Box<dyn (::std::ops::Deref<Target = [i32]>)>> =
-        Some(vec![1i32, 2]).map(|v| -> Box<dyn (::std::ops::Deref<Target = [i32]>)> { Box::new(v) });
+    let a: Option<Box<dyn (::std::ops::Deref<Target = [i32]>)>> = Some(vec![1i32, 2])
+        .map(|v| -> Box<dyn (::std::ops::Deref<Target = [i32]>)> { Box::new(v) });
 }
 
 trait TestTrait {
@@ -86,13 +86,12 @@ fn test_redundant_closures_containing_method_calls() {
     let e = Some('a').map(|s| s.to_uppercase());
     let e = Some('a').map(char::to_uppercase);
     let e: std::vec::Vec<usize> = vec!['a', 'b', 'c'].iter().map(|c| c.len_utf8()).collect();
-    let e: std::vec::Vec<char> = vec!['a', 'b', 'c'].iter().map(|c| c.to_ascii_uppercase()).collect();
+    let e: std::vec::Vec<char> =
+        vec!['a', 'b', 'c'].iter().map(|c| c.to_ascii_uppercase()).collect();
     let e: std::vec::Vec<char> = vec!['a', 'b', 'c'].iter().map(char::to_ascii_uppercase).collect();
     let p = Some(PathBuf::new());
     let e = p.as_ref().and_then(|s| s.to_str());
-    let c = Some(TestStruct { some_ref: &i })
-        .as_ref()
-        .map(|c| c.to_ascii_uppercase());
+    let c = Some(TestStruct { some_ref: &i }).as_ref().map(|c| c.to_ascii_uppercase());
 
     fn test_different_borrow_levels<T>(t: &[&T])
     where

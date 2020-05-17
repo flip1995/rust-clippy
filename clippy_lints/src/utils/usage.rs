@@ -11,14 +11,15 @@ use rustc_span::symbol::{Ident, Symbol};
 use rustc_typeck::expr_use_visitor::{ConsumeMode, Delegate, ExprUseVisitor, Place, PlaceBase};
 
 /// Returns a set of mutated local variable IDs, or `None` if mutations could not be determined.
-pub fn mutated_variables<'a, 'tcx>(expr: &'tcx Expr<'_>, cx: &'a LateContext<'a, 'tcx>) -> Option<FxHashSet<HirId>> {
-    let mut delegate = MutVarsDelegate {
-        used_mutably: FxHashSet::default(),
-        skip: false,
-    };
+pub fn mutated_variables<'a, 'tcx>(
+    expr: &'tcx Expr<'_>,
+    cx: &'a LateContext<'a, 'tcx>,
+) -> Option<FxHashSet<HirId>> {
+    let mut delegate = MutVarsDelegate { used_mutably: FxHashSet::default(), skip: false };
     let def_id = expr.hir_id.owner.to_def_id();
     cx.tcx.infer_ctxt().enter(|infcx| {
-        ExprUseVisitor::new(&mut delegate, &infcx, def_id.expect_local(), cx.param_env, cx.tables).walk_expr(expr);
+        ExprUseVisitor::new(&mut delegate, &infcx, def_id.expect_local(), cx.param_env, cx.tables)
+            .walk_expr(expr);
     });
 
     if delegate.skip {
@@ -50,14 +51,14 @@ impl<'tcx> MutVarsDelegate {
         match cat.base {
             PlaceBase::Local(id) => {
                 self.used_mutably.insert(id);
-            },
+            }
             PlaceBase::Upvar(_) => {
                 //FIXME: This causes false negatives. We can't get the `NodeId` from
                 //`Categorization::Upvar(_)`. So we search for any `Upvar`s in the
                 //`while`-body, not just the ones in the condition.
                 self.skip = true
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -98,10 +99,7 @@ impl<'tcx> Visitor<'tcx> for UsedVisitor {
 }
 
 pub fn is_unused<'tcx>(ident: &'tcx Ident, body: &'tcx Expr<'_>) -> bool {
-    let mut visitor = UsedVisitor {
-        var: ident.name,
-        used: false,
-    };
+    let mut visitor = UsedVisitor { var: ident.name, used: false };
     walk_expr(&mut visitor, body);
     !visitor.used
 }

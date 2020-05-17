@@ -70,7 +70,13 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Dereferencing {
     }
 }
 
-fn lint_deref(cx: &LateContext<'_, '_>, method_name: &str, call_expr: &Expr<'_>, var_span: Span, expr_span: Span) {
+fn lint_deref(
+    cx: &LateContext<'_, '_>,
+    method_name: &str,
+    call_expr: &Expr<'_>,
+    var_span: Span,
+    expr_span: Span,
+) {
     match method_name {
         "deref" => {
             if cx
@@ -89,7 +95,7 @@ fn lint_deref(cx: &LateContext<'_, '_>, method_name: &str, call_expr: &Expr<'_>,
                     Applicability::MachineApplicable,
                 );
             }
-        },
+        }
         "deref_mut" => {
             if cx
                 .tcx
@@ -107,7 +113,7 @@ fn lint_deref(cx: &LateContext<'_, '_>, method_name: &str, call_expr: &Expr<'_>,
                     Applicability::MachineApplicable,
                 );
             }
-        },
+        }
         _ => (),
     }
 }

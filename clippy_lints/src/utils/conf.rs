@@ -15,14 +15,16 @@ pub fn file_from_args(args: &[NestedMetaItem]) -> Result<Option<PathBuf>, (&'sta
     for arg in args.iter().filter_map(NestedMetaItem::meta_item) {
         if arg.check_name(sym!(conf_file)) {
             return match arg.kind {
-                MetaItemKind::Word | MetaItemKind::List(_) => Err(("`conf_file` must be a named value", arg.span)),
+                MetaItemKind::Word | MetaItemKind::List(_) => {
+                    Err(("`conf_file` must be a named value", arg.span))
+                }
                 MetaItemKind::NameValue(ref value) => {
                     if let LitKind::Str(ref file, _) = value.kind {
                         Ok(Some(file.to_string().into()))
                     } else {
                         Err(("`conf_file` value must be a string", value.span))
                     }
-                },
+                }
             };
         }
     }
@@ -189,7 +191,7 @@ pub fn lookup_conf_file() -> io::Result<Option<PathBuf>> {
                 // Return the error if it's something other than `NotFound`; otherwise we didn't
                 // find the project file yet, and continue searching.
                 Err(e) if e.kind() != io::ErrorKind::NotFound => return Err(e),
-                _ => {},
+                _ => {}
             }
         }
 
@@ -231,12 +233,12 @@ pub fn read(path: &Path) -> (Conf, Vec<Error>) {
             }
 
             (toml, errors)
-        },
+        }
         Err(e) => {
             let mut errors = ERRORS.lock().expect("no threading -> mutex always safe").split_off(0);
             errors.push(Error::Toml(e.to_string()));
 
             default(errors)
-        },
+        }
     }
 }

@@ -62,7 +62,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for SuspiciousImpl {
                 | hir::BinOpKind::Ne
                 | hir::BinOpKind::Ge
                 | hir::BinOpKind::Gt => return,
-                _ => {},
+                _ => {}
             }
             // Check if the binary expression is part of another bi/unary expression
             // or operator assignment as a child node
@@ -74,7 +74,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for SuspiciousImpl {
                         | hir::ExprKind::Unary(hir::UnOp::UnNot, _)
                         | hir::ExprKind::Unary(hir::UnOp::UnNeg, _)
                         | hir::ExprKind::AssignOp(..) => return,
-                        _ => {},
+                        _ => {}
                     }
                 }
                 parent_expr = cx.tcx.hir().get_parent_node(parent_expr);
@@ -194,7 +194,7 @@ impl<'a, 'tcx> Visitor<'tcx> for BinaryExprVisitor {
             | hir::ExprKind::Unary(hir::UnOp::UnNot, _)
             | hir::ExprKind::Unary(hir::UnOp::UnNeg, _)
             | hir::ExprKind::AssignOp(..) => self.in_binary_expr = true,
-            _ => {},
+            _ => {}
         }
 
         walk_expr(self, expr);

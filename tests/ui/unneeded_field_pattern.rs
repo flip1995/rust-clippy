@@ -11,12 +11,12 @@ fn main() {
     let f = Foo { a: 0, b: 0, c: 0 };
 
     match f {
-        Foo { a: _, b: 0, .. } => {},
+        Foo { a: _, b: 0, .. } => {}
 
-        Foo { a: _, b: _, c: _ } => {},
+        Foo { a: _, b: _, c: _ } => {}
     }
     match f {
-        Foo { b: 0, .. } => {}, // should be OK
-        Foo { .. } => {},       // and the Force might be with this one
+        Foo { b: 0, .. } => {} // should be OK
+        Foo { .. } => {}       // and the Force might be with this one
     }
 }

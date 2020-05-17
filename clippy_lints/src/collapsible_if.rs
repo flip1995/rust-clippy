@@ -18,7 +18,9 @@ use rustc_lint::{EarlyContext, EarlyLintPass};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 
 use crate::utils::sugg::Sugg;
-use crate::utils::{snippet_block, snippet_block_with_applicability, span_lint_and_sugg, span_lint_and_then};
+use crate::utils::{
+    snippet_block, snippet_block_with_applicability, span_lint_and_sugg, span_lint_and_then,
+};
 use rustc_errors::Applicability;
 
 declare_clippy_lint! {
@@ -123,7 +125,12 @@ fn check_collapsible_maybe_if_let(cx: &EarlyContext<'_>, else_: &ast::Expr) {
     }
 }
 
-fn check_collapsible_no_if_let(cx: &EarlyContext<'_>, expr: &ast::Expr, check: &ast::Expr, then: &ast::Block) {
+fn check_collapsible_no_if_let(
+    cx: &EarlyContext<'_>,
+    expr: &ast::Expr,
+    check: &ast::Expr,
+    then: &ast::Block,
+) {
     if_chain! {
         if !block_starts_with_comment(cx, then);
         if let Some(inner) = expr_block(then);

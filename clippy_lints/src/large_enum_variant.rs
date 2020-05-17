@@ -48,9 +48,7 @@ pub struct LargeEnumVariant {
 impl LargeEnumVariant {
     #[must_use]
     pub fn new(maximum_size_difference_allowed: u64) -> Self {
-        Self {
-            maximum_size_difference_allowed,
-        }
+        Self { maximum_size_difference_allowed }
     }
 }
 
@@ -92,7 +90,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LargeEnumVariant {
                 if difference > self.maximum_size_difference_allowed {
                     let (i, variant) = largest.1;
 
-                    let help_text = "consider boxing the large fields to reduce the total size of the enum";
+                    let help_text =
+                        "consider boxing the large fields to reduce the total size of the enum";
                     span_lint_and_then(
                         cx,
                         LARGE_ENUM_VARIANT,
@@ -109,9 +108,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LargeEnumVariant {
                             );
                             if variant.fields.len() == 1 {
                                 let span = match def.variants[i].data {
-                                    VariantData::Struct(ref fields, ..) | VariantData::Tuple(ref fields, ..) => {
-                                        fields[0].ty.span
-                                    },
+                                    VariantData::Struct(ref fields, ..)
+                                    | VariantData::Tuple(ref fields, ..) => fields[0].ty.span,
                                     VariantData::Unit(..) => unreachable!(),
                                 };
                                 if let Some(snip) = snippet_opt(cx, span) {

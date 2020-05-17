@@ -99,7 +99,7 @@ impl Return {
             match stmt.kind {
                 ast::StmtKind::Expr(ref expr) | ast::StmtKind::Semi(ref expr) => {
                     self.check_final_expr(cx, expr, Some(stmt.span), RetReplacement::Empty);
-                },
+                }
                 _ => (),
             }
         }
@@ -125,41 +125,62 @@ impl Return {
                         replacement,
                     );
                 }
-            },
+            }
             // a whole block? check it!
             ast::ExprKind::Block(ref block, _) => {
                 self.check_block_return(cx, block);
-            },
+            }
             // an if/if let expr, check both exprs
             // note, if without else is going to be a type checking error anyways
             // (except for unit type functions) so we don't match it
             ast::ExprKind::If(_, ref ifblock, Some(ref elsexpr)) => {
                 self.check_block_return(cx, ifblock);
                 self.check_final_expr(cx, elsexpr, None, RetReplacement::Empty);
-            },
+            }
             // a match expr, check all arms
             ast::ExprKind::Match(_, ref arms) => {
                 for arm in arms {
-                    self.check_final_expr(cx, &arm.body, Some(arm.body.span), RetReplacement::Block);
+                    self.check_final_expr(
+                        cx,
+                        &arm.body,
+                        Some(arm.body.span),
+                        RetReplacement::Block,
+                    );
                 }
-            },
+            }
             _ => (),
         }
     }
 
-    fn emit_return_lint(cx: &EarlyContext<'_>, ret_span: Span, inner_span: Option<Span>, replacement: RetReplacement) {
+    fn emit_return_lint(
+        cx: &EarlyContext<'_>,
+        ret_span: Span,
+        inner_span: Option<Span>,
+        replacement: RetReplacement,
+    ) {
         match inner_span {
             Some(inner_span) => {
                 if in_external_macro(cx.sess(), inner_span) || inner_span.from_expansion() {
                     return;
                 }
 
-                span_lint_and_then(cx, NEEDLESS_RETURN, ret_span, "unneeded `return` statement", |diag| {
-                    if let Some(snippet) = snippet_opt(cx, inner_span) {
-                        diag.span_suggestion(ret_span, "remove `return`", snippet, Applicability::MachineApplicable);
-                    }
-                })
-            },
+                span_lint_and_then(
+                    cx,
+                    NEEDLESS_RETURN,
+                    ret_span,
+                    "unneeded `return` statement",
+                    |diag| {
+                        if let Some(snippet) = snippet_opt(cx, inner_span) {
+                            diag.span_suggestion(
+                                ret_span,
+                                "remove `return`",
+                                snippet,
+                                Applicability::MachineApplicable,
+                            );
+                        }
+                    },
+                )
+            }
             None => match replacement {
                 RetReplacement::Empty => {
                     span_lint_and_sugg(
@@ -171,7 +192,7 @@ impl Return {
                         String::new(),
                         Applicability::MachineApplicable,
                     );
-                },
+                }
                 RetReplacement::Block => {
                     span_lint_and_sugg(
                         cx,
@@ -182,7 +203,7 @@ impl Return {
                         "{}".to_string(),
                         Applicability::MachineApplicable,
                     );
-                },
+                }
             },
         }
     }
@@ -240,8 +261,10 @@ impl EarlyLintPass for Return {
     fn check_fn(&mut self, cx: &EarlyContext<'_>, kind: FnKind<'_>, span: Span, _: ast::NodeId) {
         match kind {
             FnKind::Fn(.., Some(block)) => self.check_block_return(cx, block),
-            FnKind::Closure(_, body) => self.check_final_expr(cx, body, Some(body.span), RetReplacement::Empty),
-            FnKind::Fn(.., None) => {},
+            FnKind::Closure(_, body) => {
+                self.check_final_expr(cx, body, Some(body.span), RetReplacement::Empty)
+            }
+            FnKind::Fn(.., None) => {}
         }
         if_chain! {
             if let ast::FnRetTy::Ty(ref ty) = kind.decl().output;
@@ -288,12 +311,17 @@ impl EarlyLintPass for Return {
                         Applicability::MachineApplicable,
                     );
                 }
-            },
+            }
             _ => (),
         }
     }
 
-    fn check_poly_trait_ref(&mut self, cx: &EarlyContext<'_>, poly: &ast::PolyTraitRef, _: &ast::TraitBoundModifier) {
+    fn check_poly_trait_ref(
+        &mut self,
+        cx: &EarlyContext<'_>,
+        poly: &ast::PolyTraitRef,
+        _: &ast::TraitBoundModifier,
+    ) {
         let segments = &poly.trait_ref.path.segments;
 
         if_chain! {
@@ -317,30 +345,21 @@ fn attr_is_cfg(attr: &ast::Attribute) -> bool {
 // get the def site
 #[must_use]
 fn get_def(span: Span) -> Option<Span> {
-    if span.from_expansion() {
-        Some(span.ctxt().outer_expn_data().def_site)
-    } else {
-        None
-    }
+    if span.from_expansion() { Some(span.ctxt().outer_expn_data().def_site) } else { None }
 }
 
 // is this expr a `()` unit?
 fn is_unit_expr(expr: &ast::Expr) -> bool {
-    if let ast::ExprKind::Tup(ref vals) = expr.kind {
-        vals.is_empty()
-    } else {
-        false
-    }
+    if let ast::ExprKind::Tup(ref vals) = expr.kind { vals.is_empty() } else { false }
 }
 
 fn lint_unneeded_unit_return(cx: &EarlyContext<'_>, ty: &ast::Ty, span: Span) {
-    let (ret_span, appl) = if let Ok(fn_source) = cx.sess().source_map().span_to_snippet(span.with_hi(ty.span.hi())) {
+    let (ret_span, appl) = if let Ok(fn_source) =
+        cx.sess().source_map().span_to_snippet(span.with_hi(ty.span.hi()))
+    {
         if let Some(rpos) = fn_source.rfind("->") {
             #[allow(clippy::cast_possible_truncation)]
-            (
-                ty.span.with_lo(BytePos(span.lo().0 + rpos as u32)),
-                Applicability::MachineApplicable,
-            )
+            (ty.span.with_lo(BytePos(span.lo().0 + rpos as u32)), Applicability::MachineApplicable)
         } else {
             (ty.span, Applicability::MaybeIncorrect)
         }

@@ -3,10 +3,11 @@ use crate::reexport::Name;
 use crate::utils::paths;
 use crate::utils::usage::{is_unused, mutated_variables};
 use crate::utils::{
-    get_enclosing_block, get_parent_expr, get_trait_def_id, has_iter_method, higher, implements_trait,
-    is_integer_const, is_no_std_crate, is_refutable, last_path_segment, match_trait_method, match_type, match_var,
-    multispan_sugg, snippet, snippet_opt, snippet_with_applicability, span_lint, span_lint_and_help,
-    span_lint_and_sugg, span_lint_and_then, SpanlessEq,
+    get_enclosing_block, get_parent_expr, get_trait_def_id, has_iter_method, higher,
+    implements_trait, is_integer_const, is_no_std_crate, is_refutable, last_path_segment,
+    match_trait_method, match_type, match_var, multispan_sugg, snippet, snippet_opt,
+    snippet_with_applicability, span_lint, span_lint_and_help, span_lint_and_sugg,
+    span_lint_and_then, SpanlessEq,
 };
 use crate::utils::{is_type_diagnostic_item, qpath_res, same_tys, sugg};
 use if_chain::if_chain;
@@ -14,10 +15,12 @@ use rustc_ast::ast;
 use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_errors::Applicability;
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::intravisit::{walk_block, walk_expr, walk_pat, walk_stmt, NestedVisitorMap, Visitor};
+use rustc_hir::intravisit::{
+    walk_block, walk_expr, walk_pat, walk_stmt, NestedVisitorMap, Visitor,
+};
 use rustc_hir::{
-    def_id, BinOpKind, BindingAnnotation, Block, BorrowKind, Expr, ExprKind, GenericArg, HirId, LoopSource,
-    MatchSource, Mutability, Node, Pat, PatKind, QPath, Stmt, StmtKind,
+    def_id, BinOpKind, BindingAnnotation, Block, BorrowKind, Expr, ExprKind, GenericArg, HirId,
+    LoopSource, MatchSource, Mutability, Node, Pat, PatKind, QPath, Stmt, StmtKind,
 };
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::{LateContext, LateLintPass, LintContext};
@@ -459,7 +462,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Loops {
         // check for never_loop
         if let ExprKind::Loop(ref block, _, _) = expr.kind {
             match never_loop_block(block, expr.hir_id) {
-                NeverLoopResult::AlwaysBreak => span_lint(cx, NEVER_LOOP, expr.span, "this loop never actually loops"),
+                NeverLoopResult::AlwaysBreak => {
+                    span_lint(cx, NEVER_LOOP, expr.span, "this loop never actually loops")
+                }
                 NeverLoopResult::MayContinueMainLoop | NeverLoopResult::Otherwise => (),
             }
         }
@@ -469,7 +474,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Loops {
         // (even if the "match" or "if let" is used for declaration)
         if let ExprKind::Loop(ref block, _, LoopSource::Loop) = expr.kind {
             // also check for empty `loop {}` statements
-            if block.stmts.is_empty() && block.expr.is_none() && !is_no_std_crate(cx.tcx.hir().krate()) {
+            if block.stmts.is_empty()
+                && block.expr.is_none()
+                && !is_no_std_crate(cx.tcx.hir().krate())
+            {
                 span_lint(
                     cx,
                     EMPTY_LOOP,
@@ -510,13 +518,23 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Loops {
                                     "try",
                                     format!(
                                         "while let {} = {} {{ .. }}",
-                                        snippet_with_applicability(cx, arms[0].pat.span, "..", &mut applicability),
-                                        snippet_with_applicability(cx, matchexpr.span, "..", &mut applicability),
+                                        snippet_with_applicability(
+                                            cx,
+                                            arms[0].pat.span,
+                                            "..",
+                                            &mut applicability
+                                        ),
+                                        snippet_with_applicability(
+                                            cx,
+                                            matchexpr.span,
+                                            "..",
+                                            &mut applicability
+                                        ),
                                     ),
                                     applicability,
                                 );
                             }
-                        },
+                        }
                         _ => (),
                     }
                 }
@@ -552,11 +570,17 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Loops {
                             && !is_nested(cx, expr, &method_args[0]))
                 {
                     let mut applicability = Applicability::MachineApplicable;
-                    let iterator = snippet_with_applicability(cx, method_args[0].span, "_", &mut applicability);
+                    let iterator = snippet_with_applicability(
+                        cx,
+                        method_args[0].span,
+                        "_",
+                        &mut applicability,
+                    );
                     let loop_var = if pat_args.is_empty() {
                         "_".to_string()
                     } else {
-                        snippet_with_applicability(cx, pat_args[0].span, "_", &mut applicability).into_owned()
+                        snippet_with_applicability(cx, pat_args[0].span, "_", &mut applicability)
+                            .into_owned()
                     };
                     span_lint_and_sugg(
                         cx,
@@ -610,8 +634,10 @@ fn combine_both(left: NeverLoopResult, right: NeverLoopResult) -> NeverLoopResul
     match (left, right) {
         (NeverLoopResult::MayContinueMainLoop, _) | (_, NeverLoopResult::MayContinueMainLoop) => {
             NeverLoopResult::MayContinueMainLoop
-        },
-        (NeverLoopResult::AlwaysBreak, _) | (_, NeverLoopResult::AlwaysBreak) => NeverLoopResult::AlwaysBreak,
+        }
+        (NeverLoopResult::AlwaysBreak, _) | (_, NeverLoopResult::AlwaysBreak) => {
+            NeverLoopResult::AlwaysBreak
+        }
         (NeverLoopResult::Otherwise, NeverLoopResult::Otherwise) => NeverLoopResult::Otherwise,
     }
 }
@@ -620,11 +646,15 @@ fn combine_both(left: NeverLoopResult, right: NeverLoopResult) -> NeverLoopResul
 #[must_use]
 fn combine_branches(b1: NeverLoopResult, b2: NeverLoopResult) -> NeverLoopResult {
     match (b1, b2) {
-        (NeverLoopResult::AlwaysBreak, NeverLoopResult::AlwaysBreak) => NeverLoopResult::AlwaysBreak,
+        (NeverLoopResult::AlwaysBreak, NeverLoopResult::AlwaysBreak) => {
+            NeverLoopResult::AlwaysBreak
+        }
         (NeverLoopResult::MayContinueMainLoop, _) | (_, NeverLoopResult::MayContinueMainLoop) => {
             NeverLoopResult::MayContinueMainLoop
-        },
-        (NeverLoopResult::Otherwise, _) | (_, NeverLoopResult::Otherwise) => NeverLoopResult::Otherwise,
+        }
+        (NeverLoopResult::Otherwise, _) | (_, NeverLoopResult::Otherwise) => {
+            NeverLoopResult::Otherwise
+        }
     }
 }
 
@@ -656,16 +686,20 @@ fn never_loop_expr(expr: &Expr<'_>, main_loop_id: HirId) -> NeverLoopResult {
         | ExprKind::DropTemps(ref e) => never_loop_expr(e, main_loop_id),
         ExprKind::Array(ref es) | ExprKind::MethodCall(_, _, ref es) | ExprKind::Tup(ref es) => {
             never_loop_expr_all(&mut es.iter(), main_loop_id)
-        },
-        ExprKind::Call(ref e, ref es) => never_loop_expr_all(&mut once(&**e).chain(es.iter()), main_loop_id),
+        }
+        ExprKind::Call(ref e, ref es) => {
+            never_loop_expr_all(&mut once(&**e).chain(es.iter()), main_loop_id)
+        }
         ExprKind::Binary(_, ref e1, ref e2)
         | ExprKind::Assign(ref e1, ref e2, _)
         | ExprKind::AssignOp(_, ref e1, ref e2)
-        | ExprKind::Index(ref e1, ref e2) => never_loop_expr_all(&mut [&**e1, &**e2].iter().cloned(), main_loop_id),
+        | ExprKind::Index(ref e1, ref e2) => {
+            never_loop_expr_all(&mut [&**e1, &**e2].iter().cloned(), main_loop_id)
+        }
         ExprKind::Loop(ref b, _, _) => {
             // Break can come from the inner loop so remove them.
             absorb_break(&never_loop_block(b, main_loop_id))
-        },
+        }
         ExprKind::Match(ref e, ref arms, _) => {
             let e = never_loop_expr(e, main_loop_id);
             if arms.is_empty() {
@@ -674,7 +708,7 @@ fn never_loop_expr(expr: &Expr<'_>, main_loop_id: HirId) -> NeverLoopResult {
                 let arms = never_loop_expr_branch(&mut arms.iter().map(|a| &*a.body), main_loop_id);
                 combine_seq(e, arms)
             }
-        },
+        }
         ExprKind::Block(ref b, _) => never_loop_block(b, main_loop_id),
         ExprKind::Continue(d) => {
             let id = d
@@ -685,14 +719,14 @@ fn never_loop_expr(expr: &Expr<'_>, main_loop_id: HirId) -> NeverLoopResult {
             } else {
                 NeverLoopResult::AlwaysBreak
             }
-        },
+        }
         ExprKind::Break(_, ref e) | ExprKind::Ret(ref e) => {
             if let Some(ref e) = *e {
                 combine_seq(never_loop_expr(e, main_loop_id), NeverLoopResult::AlwaysBreak)
             } else {
                 NeverLoopResult::AlwaysBreak
             }
-        },
+        }
         ExprKind::Struct(_, _, None)
         | ExprKind::Yield(_, _)
         | ExprKind::Closure(_, _, _, _, _)
@@ -703,19 +737,25 @@ fn never_loop_expr(expr: &Expr<'_>, main_loop_id: HirId) -> NeverLoopResult {
     }
 }
 
-fn never_loop_expr_seq<'a, T: Iterator<Item = &'a Expr<'a>>>(es: &mut T, main_loop_id: HirId) -> NeverLoopResult {
-    es.map(|e| never_loop_expr(e, main_loop_id))
-        .fold(NeverLoopResult::Otherwise, combine_seq)
+fn never_loop_expr_seq<'a, T: Iterator<Item = &'a Expr<'a>>>(
+    es: &mut T,
+    main_loop_id: HirId,
+) -> NeverLoopResult {
+    es.map(|e| never_loop_expr(e, main_loop_id)).fold(NeverLoopResult::Otherwise, combine_seq)
 }
 
-fn never_loop_expr_all<'a, T: Iterator<Item = &'a Expr<'a>>>(es: &mut T, main_loop_id: HirId) -> NeverLoopResult {
-    es.map(|e| never_loop_expr(e, main_loop_id))
-        .fold(NeverLoopResult::Otherwise, combine_both)
+fn never_loop_expr_all<'a, T: Iterator<Item = &'a Expr<'a>>>(
+    es: &mut T,
+    main_loop_id: HirId,
+) -> NeverLoopResult {
+    es.map(|e| never_loop_expr(e, main_loop_id)).fold(NeverLoopResult::Otherwise, combine_both)
 }
 
-fn never_loop_expr_branch<'a, T: Iterator<Item = &'a Expr<'a>>>(e: &mut T, main_loop_id: HirId) -> NeverLoopResult {
-    e.map(|e| never_loop_expr(e, main_loop_id))
-        .fold(NeverLoopResult::AlwaysBreak, combine_branches)
+fn never_loop_expr_branch<'a, T: Iterator<Item = &'a Expr<'a>>>(
+    e: &mut T,
+    main_loop_id: HirId,
+) -> NeverLoopResult {
+    e.map(|e| never_loop_expr(e, main_loop_id)).fold(NeverLoopResult::AlwaysBreak, combine_branches)
 }
 
 fn check_for_loop<'a, 'tcx>(
@@ -761,17 +801,11 @@ struct Offset {
 
 impl Offset {
     fn negative(value: String) -> Self {
-        Self {
-            value,
-            sign: OffsetSign::Negative,
-        }
+        Self { value, sign: OffsetSign::Negative }
     }
 
     fn positive(value: String) -> Self {
-        Self {
-            value,
-            sign: OffsetSign::Positive,
-        }
+        Self { value, sign: OffsetSign::Positive }
     }
 }
 
@@ -787,7 +821,9 @@ fn is_slice_like<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ty: Ty<'_>) -> bool {
         _ => false,
     };
 
-    is_slice || is_type_diagnostic_item(cx, ty, sym!(vec_type)) || is_type_diagnostic_item(cx, ty, sym!(vecdeque_type))
+    is_slice
+        || is_type_diagnostic_item(cx, ty, sym!(vec_type))
+        || is_type_diagnostic_item(cx, ty, sym!(vecdeque_type))
 }
 
 fn fetch_cloned_expr<'tcx>(expr: &'tcx Expr<'tcx>) -> &'tcx Expr<'tcx> {
@@ -801,13 +837,19 @@ fn fetch_cloned_expr<'tcx>(expr: &'tcx Expr<'tcx>) -> &'tcx Expr<'tcx> {
 }
 
 fn get_offset<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, idx: &Expr<'_>, var: HirId) -> Option<Offset> {
-    fn extract_offset<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, e: &Expr<'_>, var: HirId) -> Option<String> {
+    fn extract_offset<'a, 'tcx>(
+        cx: &LateContext<'a, 'tcx>,
+        e: &Expr<'_>,
+        var: HirId,
+    ) -> Option<String> {
         match &e.kind {
             ExprKind::Lit(l) => match l.node {
                 ast::LitKind::Int(x, _ty) => Some(x.to_string()),
                 _ => None,
             },
-            ExprKind::Path(..) if !same_var(cx, e, var) => Some(snippet_opt(cx, e.span).unwrap_or_else(|| "??".into())),
+            ExprKind::Path(..) if !same_var(cx, e, var) => {
+                Some(snippet_opt(cx, e.span).unwrap_or_else(|| "??".into()))
+            }
             _ => None,
         }
     }
@@ -824,8 +866,10 @@ fn get_offset<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, idx: &Expr<'_>, var: HirId) 
                 };
 
                 offset_opt.map(Offset::positive)
-            },
-            BinOpKind::Sub if same_var(cx, lhs, var) => extract_offset(cx, rhs, var).map(Offset::negative),
+            }
+            BinOpKind::Sub if same_var(cx, lhs, var) => {
+                extract_offset(cx, rhs, var).map(Offset::negative)
+            }
             _ => None,
         },
         ExprKind::Path(..) if same_var(cx, idx, var) => Some(Offset::positive("0".into())),
@@ -833,13 +877,11 @@ fn get_offset<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, idx: &Expr<'_>, var: HirId) 
     }
 }
 
-fn get_assignments<'tcx>(body: &'tcx Expr<'tcx>) -> impl Iterator<Item = Option<(&'tcx Expr<'tcx>, &'tcx Expr<'tcx>)>> {
+fn get_assignments<'tcx>(
+    body: &'tcx Expr<'tcx>,
+) -> impl Iterator<Item = Option<(&'tcx Expr<'tcx>, &'tcx Expr<'tcx>)>> {
     fn get_assignment<'tcx>(e: &'tcx Expr<'tcx>) -> Option<(&'tcx Expr<'tcx>, &'tcx Expr<'tcx>)> {
-        if let ExprKind::Assign(lhs, rhs, _) = e.kind {
-            Some((lhs, rhs))
-        } else {
-            None
-        }
+        if let ExprKind::Assign(lhs, rhs, _) = e.kind { Some((lhs, rhs)) } else { None }
     }
 
     // This is one of few ways to return different iterators
@@ -886,17 +928,13 @@ fn build_manual_memcpy_suggestion<'a, 'tcx>(
                 } else {
                     format!("({} - {})", x, y)
                 }
-            },
+            }
         }
     }
 
     fn print_offset(start_str: &str, inline_offset: &Offset) -> String {
         let offset = print_sum(start_str, inline_offset);
-        if offset.as_str() == "0" {
-            "".into()
-        } else {
-            offset
-        }
+        if offset.as_str() == "0" { "".into() } else { offset }
     }
 
     let print_limit = |end: &Expr<'_>, offset: Offset, var: &Expr<'_>| {
@@ -940,10 +978,7 @@ fn build_manual_memcpy_suggestion<'a, 'tcx>(
         format!("{}[{}..{}]", dst_var_name, dst_offset, dst_limit)
     };
 
-    format!(
-        "{}.clone_from_slice(&{}[{}..{}])",
-        dst, src_var_name, src_offset, src_limit
-    )
+    format!("{}.clone_from_slice(&{}[{}..{}])", dst, src_var_name, src_offset, src_limit)
 }
 /// Checks for for loops that sequentially copy items from one slice-like
 /// object to another.
@@ -954,11 +989,8 @@ fn detect_manual_memcpy<'a, 'tcx>(
     body: &'tcx Expr<'_>,
     expr: &'tcx Expr<'_>,
 ) {
-    if let Some(higher::Range {
-        start: Some(start),
-        end: Some(end),
-        limits,
-    }) = higher::range(cx, arg)
+    if let Some(higher::Range { start: Some(start), end: Some(end), limits }) =
+        higher::range(cx, arg)
     {
         // the var must be a single name
         if let PatKind::Binding(_, canonical_id, _, _) = pat.kind {
@@ -987,7 +1019,11 @@ fn detect_manual_memcpy<'a, 'tcx>(
                         }
                     })
                 })
-                .map(|o| o.map(|(dst, src)| build_manual_memcpy_suggestion(cx, start, end, limits, dst, src)))
+                .map(|o| {
+                    o.map(|(dst, src)| {
+                        build_manual_memcpy_suggestion(cx, start, end, limits, dst, src)
+                    })
+                })
                 .collect::<Option<Vec<_>>>()
                 .filter(|v| !v.is_empty())
                 .map(|v| v.join("\n    "));
@@ -1017,12 +1053,7 @@ fn check_for_loop_range<'a, 'tcx>(
     body: &'tcx Expr<'_>,
     expr: &'tcx Expr<'_>,
 ) {
-    if let Some(higher::Range {
-        start: Some(start),
-        ref end,
-        limits,
-    }) = higher::range(cx, arg)
-    {
+    if let Some(higher::Range { start: Some(start), ref end, limits }) = higher::range(cx, arg) {
         // the var must be a single name
         if let PatKind::Binding(_, canonical_id, ident, _) = pat.kind {
             let mut visitor = VarVisitor {
@@ -1096,15 +1127,18 @@ fn check_for_loop_range<'a, 'tcx>(
                         }
                     }
 
-                    if is_len_call(end, indexed) || is_end_eq_array_len(cx, end, limits, indexed_ty) {
+                    if is_len_call(end, indexed) || is_end_eq_array_len(cx, end, limits, indexed_ty)
+                    {
                         String::new()
                     } else {
                         match limits {
                             ast::RangeLimits::Closed => {
                                 let take_expr = sugg::Sugg::hir(cx, take_expr, "<count>");
                                 format!(".take({})", take_expr + sugg::ONE)
-                            },
-                            ast::RangeLimits::HalfOpen => format!(".take({})", snippet(cx, take_expr.span, "..")),
+                            }
+                            ast::RangeLimits::HalfOpen => {
+                                format!(".take({})", snippet(cx, take_expr.span, ".."))
+                            }
                         }
                     }
                 } else {
@@ -1130,7 +1164,10 @@ fn check_for_loop_range<'a, 'tcx>(
                         cx,
                         NEEDLESS_RANGE_LOOP,
                         expr.span,
-                        &format!("the loop variable `{}` is used to index `{}`", ident.name, indexed),
+                        &format!(
+                            "the loop variable `{}` is used to index `{}`",
+                            ident.name, indexed
+                        ),
                         |diag| {
                             multispan_sugg(
                                 diag,
@@ -1139,7 +1176,10 @@ fn check_for_loop_range<'a, 'tcx>(
                                     (pat.span, format!("({}, <item>)", ident.name)),
                                     (
                                         arg.span,
-                                        format!("{}.{}().enumerate(){}{}", indexed, method, method_1, method_2),
+                                        format!(
+                                            "{}.{}().enumerate(){}{}",
+                                            indexed, method, method_1, method_2
+                                        ),
                                     ),
                                 ],
                             );
@@ -1212,7 +1252,12 @@ fn is_end_eq_array_len<'tcx>(
     false
 }
 
-fn lint_iter_method(cx: &LateContext<'_, '_>, args: &[Expr<'_>], arg: &Expr<'_>, method_name: &str) {
+fn lint_iter_method(
+    cx: &LateContext<'_, '_>,
+    args: &[Expr<'_>],
+    arg: &Expr<'_>,
+    method_name: &str,
+) {
     let mut applicability = Applicability::MachineApplicable;
     let object = snippet_with_applicability(cx, args[0].span, "_", &mut applicability);
     let muta = if method_name == "iter_mut" { "mut " } else { "" };
@@ -1239,12 +1284,15 @@ fn check_for_loop_arg(cx: &LateContext<'_, '_>, pat: &Pat<'_>, arg: &Expr<'_>, e
                 if is_ref_iterable_type(cx, &args[0]) {
                     lint_iter_method(cx, args, arg, method_name);
                 }
-            } else if method_name == "into_iter" && match_trait_method(cx, arg, &paths::INTO_ITERATOR) {
+            } else if method_name == "into_iter"
+                && match_trait_method(cx, arg, &paths::INTO_ITERATOR)
+            {
                 let receiver_ty = cx.tables.expr_ty(&args[0]);
                 let receiver_ty_adjusted = cx.tables.expr_ty_adjusted(&args[0]);
                 if same_tys(cx, receiver_ty, receiver_ty_adjusted) {
                     let mut applicability = Applicability::MachineApplicable;
-                    let object = snippet_with_applicability(cx, args[0].span, "_", &mut applicability);
+                    let object =
+                        snippet_with_applicability(cx, args[0].span, "_", &mut applicability);
                     span_lint_and_sugg(
                         cx,
                         EXPLICIT_INTO_ITER_LOOP,
@@ -1258,10 +1306,7 @@ fn check_for_loop_arg(cx: &LateContext<'_, '_>, pat: &Pat<'_>, arg: &Expr<'_>, e
                 } else {
                     let ref_receiver_ty = cx.tcx.mk_ref(
                         cx.tcx.lifetimes.re_erased,
-                        ty::TypeAndMut {
-                            ty: receiver_ty,
-                            mutbl: Mutability::Not,
-                        },
+                        ty::TypeAndMut { ty: receiver_ty, mutbl: Mutability::Not },
                     );
                     if same_tys(cx, receiver_ty_adjusted, ref_receiver_ty) {
                         lint_iter_method(cx, args, arg, method_name)
@@ -1332,12 +1377,7 @@ fn check_for_loop_explicit_counter<'a, 'tcx>(
     expr: &'tcx Expr<'_>,
 ) {
     // Look for variables that are incremented once per loop iteration.
-    let mut visitor = IncrementVisitor {
-        cx,
-        states: FxHashMap::default(),
-        depth: 0,
-        done: false,
-    };
+    let mut visitor = IncrementVisitor { cx, states: FxHashMap::default(), depth: 0, done: false };
     walk_expr(&mut visitor, body);
 
     // For each candidate, check the parent block to see if
@@ -1389,14 +1429,15 @@ fn check_for_loop_explicit_counter<'a, 'tcx>(
 
 /// If `arg` was the argument to a `for` loop, return the "cleanest" way of writing the
 /// actual `Iterator` that the loop uses.
-fn make_iterator_snippet(cx: &LateContext<'_, '_>, arg: &Expr<'_>, applic_ref: &mut Applicability) -> String {
+fn make_iterator_snippet(
+    cx: &LateContext<'_, '_>,
+    arg: &Expr<'_>,
+    applic_ref: &mut Applicability,
+) -> String {
     let impls_iterator = get_trait_def_id(cx, &paths::ITERATOR)
         .map_or(false, |id| implements_trait(cx, cx.tables.expr_ty(arg), id, &[]));
     if impls_iterator {
-        format!(
-            "{}",
-            sugg::Sugg::hir_with_applicability(cx, arg, "_", applic_ref).maybe_par()
-        )
+        format!("{}", sugg::Sugg::hir_with_applicability(cx, arg, "_", applic_ref).maybe_par())
     } else {
         // (&x).into_iter() ==> x.iter()
         // (&mut x).into_iter() ==> x.iter_mut()
@@ -1438,7 +1479,9 @@ fn check_for_loop_over_map_kv<'a, 'tcx>(
             let (new_pat_span, kind, ty, mutbl) = match cx.tables.expr_ty(arg).kind {
                 ty::Ref(_, ty, mutbl) => match (&pat[0].kind, &pat[1].kind) {
                     (key, _) if pat_is_wild(key, body) => (pat[1].span, "value", ty, mutbl),
-                    (_, value) if pat_is_wild(value, body) => (pat[0].span, "key", ty, Mutability::Not),
+                    (_, value) if pat_is_wild(value, body) => {
+                        (pat[0].span, "key", ty, Mutability::Not)
+                    }
                     _ => return,
                 },
                 _ => return,
@@ -1452,7 +1495,9 @@ fn check_for_loop_over_map_kv<'a, 'tcx>(
                 _ => arg,
             };
 
-            if is_type_diagnostic_item(cx, ty, sym!(hashmap_type)) || match_type(cx, ty, &paths::BTREEMAP) {
+            if is_type_diagnostic_item(cx, ty, sym!(hashmap_type))
+                || match_type(cx, ty, &paths::BTREEMAP)
+            {
                 span_lint_and_then(
                     cx,
                     FOR_KV_MAP,
@@ -1517,12 +1562,7 @@ impl<'tcx> MutatePairDelegate {
 }
 
 fn check_for_mut_range_bound(cx: &LateContext<'_, '_>, arg: &Expr<'_>, body: &Expr<'_>) {
-    if let Some(higher::Range {
-        start: Some(start),
-        end: Some(end),
-        ..
-    }) = higher::range(cx, arg)
-    {
+    if let Some(higher::Range { start: Some(start), end: Some(end), .. }) = higher::range(cx, arg) {
         let mut_ids = vec![check_for_mutability(cx, start), check_for_mutability(cx, end)];
         if mut_ids[0].is_some() || mut_ids[1].is_some() {
             let (span_low, span_high) = check_for_mutation(cx, body, &mut_ids);
@@ -1578,7 +1618,8 @@ fn check_for_mutation(
     };
     let def_id = body.hir_id.owner.to_def_id();
     cx.tcx.infer_ctxt().enter(|infcx| {
-        ExprUseVisitor::new(&mut delegate, &infcx, def_id.expect_local(), cx.param_env, cx.tables).walk_expr(body);
+        ExprUseVisitor::new(&mut delegate, &infcx, def_id.expect_local(), cx.param_env, cx.tables)
+            .walk_expr(body);
     });
     delegate.mutation_span()
 }
@@ -1587,7 +1628,9 @@ fn check_for_mutation(
 fn pat_is_wild<'tcx>(pat: &'tcx PatKind<'_>, body: &'tcx Expr<'_>) -> bool {
     match *pat {
         PatKind::Wild => true,
-        PatKind::Binding(.., ident, None) if ident.as_str().starts_with('_') => is_unused(&ident, body),
+        PatKind::Binding(.., ident, None) if ident.as_str().starts_with('_') => {
+            is_unused(&ident, body)
+        }
         _ => false,
     }
 }
@@ -1638,7 +1681,12 @@ struct VarVisitor<'a, 'tcx> {
 }
 
 impl<'a, 'tcx> VarVisitor<'a, 'tcx> {
-    fn check(&mut self, idx: &'tcx Expr<'_>, seqexpr: &'tcx Expr<'_>, expr: &'tcx Expr<'_>) -> bool {
+    fn check(
+        &mut self,
+        idx: &'tcx Expr<'_>,
+        seqexpr: &'tcx Expr<'_>,
+        expr: &'tcx Expr<'_>,
+    ) -> bool {
         if_chain! {
             // the indexed container is referenced by a name
             if let ExprKind::Path(ref seqpath) = seqexpr.kind;
@@ -1742,13 +1790,13 @@ impl<'a, 'tcx> Visitor<'tcx> for VarVisitor<'a, 'tcx> {
                 self.visit_expr(lhs);
                 self.prefer_mutable = false;
                 self.visit_expr(rhs);
-            },
+            }
             ExprKind::AddrOf(BorrowKind::Ref, mutbl, ref expr) => {
                 if mutbl == Mutability::Mut {
                     self.prefer_mutable = true;
                 }
                 self.visit_expr(expr);
-            },
+            }
             ExprKind::Call(ref f, args) => {
                 self.visit_expr(f);
                 for expr in args {
@@ -1761,10 +1809,11 @@ impl<'a, 'tcx> Visitor<'tcx> for VarVisitor<'a, 'tcx> {
                     }
                     self.visit_expr(expr);
                 }
-            },
+            }
             ExprKind::MethodCall(_, _, args) => {
                 let def_id = self.cx.tables.type_dependent_def_id(expr.hir_id).unwrap();
-                for (ty, expr) in self.cx.tcx.fn_sig(def_id).inputs().skip_binder().iter().zip(args) {
+                for (ty, expr) in self.cx.tcx.fn_sig(def_id).inputs().skip_binder().iter().zip(args)
+                {
                     self.prefer_mutable = false;
                     if let ty::Ref(_, _, mutbl) = ty.kind {
                         if mutbl == Mutability::Mut {
@@ -1773,11 +1822,11 @@ impl<'a, 'tcx> Visitor<'tcx> for VarVisitor<'a, 'tcx> {
                     }
                     self.visit_expr(expr);
                 }
-            },
+            }
             ExprKind::Closure(_, _, body_id, ..) => {
                 let body = self.cx.tcx.hir().body(body_id);
                 self.visit_expr(&body.value);
-            },
+            }
             _ => walk_expr(self, expr),
         }
         self.prefer_mutable = old;
@@ -1787,7 +1836,11 @@ impl<'a, 'tcx> Visitor<'tcx> for VarVisitor<'a, 'tcx> {
     }
 }
 
-fn is_used_inside<'a, 'tcx>(cx: &'a LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, container: &'tcx Expr<'_>) -> bool {
+fn is_used_inside<'a, 'tcx>(
+    cx: &'a LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'_>,
+    container: &'tcx Expr<'_>,
+) -> bool {
     let def_id = match var_def_id(cx, expr) {
         Some(id) => id,
         None => return false,
@@ -1800,7 +1853,10 @@ fn is_used_inside<'a, 'tcx>(cx: &'a LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>,
     false
 }
 
-fn is_iterator_used_after_while_let<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, iter_expr: &'tcx Expr<'_>) -> bool {
+fn is_iterator_used_after_while_let<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    iter_expr: &'tcx Expr<'_>,
+) -> bool {
     let def_id = match var_def_id(cx, iter_expr) {
         Some(id) => id,
         None => return false,
@@ -1871,7 +1927,7 @@ fn is_iterable_array<'tcx>(ty: Ty<'tcx>, cx: &LateContext<'_, 'tcx>) -> bool {
             } else {
                 false
             }
-        },
+        }
         _ => false,
     }
 }
@@ -1883,11 +1939,7 @@ fn extract_expr_from_first_stmt<'tcx>(block: &Block<'tcx>) -> Option<&'tcx Expr<
         return None;
     }
     if let StmtKind::Local(ref local) = block.stmts[0].kind {
-        if let Some(expr) = local.init {
-            Some(expr)
-        } else {
-            None
-        }
+        if let Some(expr) = local.init { Some(expr) } else { None }
     } else {
         None
     }
@@ -1910,8 +1962,12 @@ fn extract_first_expr<'tcx>(block: &Block<'tcx>) -> Option<&'tcx Expr<'tcx>> {
 /// passed expression. The expression may be within a block.
 fn is_simple_break_expr(expr: &Expr<'_>) -> bool {
     match expr.kind {
-        ExprKind::Break(dest, ref passed_expr) if dest.label.is_none() && passed_expr.is_none() => true,
-        ExprKind::Block(ref b, _) => extract_first_expr(b).map_or(false, |subexpr| is_simple_break_expr(subexpr)),
+        ExprKind::Break(dest, ref passed_expr) if dest.label.is_none() && passed_expr.is_none() => {
+            true
+        }
+        ExprKind::Block(ref b, _) => {
+            extract_first_expr(b).map_or(false, |subexpr| is_simple_break_expr(subexpr))
+        }
         _ => false,
     }
 }
@@ -1962,11 +2018,15 @@ impl<'a, 'tcx> Visitor<'tcx> for IncrementVisitor<'a, 'tcx> {
                                 *state = VarState::DontWarn;
                             }
                         }
-                    },
-                    ExprKind::Assign(ref lhs, _, _) if lhs.hir_id == expr.hir_id => *state = VarState::DontWarn,
-                    ExprKind::AddrOf(BorrowKind::Ref, mutability, _) if mutability == Mutability::Mut => {
+                    }
+                    ExprKind::Assign(ref lhs, _, _) if lhs.hir_id == expr.hir_id => {
                         *state = VarState::DontWarn
-                    },
+                    }
+                    ExprKind::AddrOf(BorrowKind::Ref, mutability, _)
+                        if mutability == Mutability::Mut =>
+                    {
+                        *state = VarState::DontWarn
+                    }
                     _ => (),
                 }
             }
@@ -2042,17 +2102,19 @@ impl<'a, 'tcx> Visitor<'tcx> for InitializeVisitor<'a, 'tcx> {
                 match parent.kind {
                     ExprKind::AssignOp(_, ref lhs, _) if lhs.hir_id == expr.hir_id => {
                         self.state = VarState::DontWarn;
-                    },
+                    }
                     ExprKind::Assign(ref lhs, ref rhs, _) if lhs.hir_id == expr.hir_id => {
                         self.state = if is_integer_const(&self.cx, rhs, 0) && self.depth == 0 {
                             VarState::Warn
                         } else {
                             VarState::DontWarn
                         }
-                    },
-                    ExprKind::AddrOf(BorrowKind::Ref, mutability, _) if mutability == Mutability::Mut => {
+                    }
+                    ExprKind::AddrOf(BorrowKind::Ref, mutability, _)
+                        if mutability == Mutability::Mut =>
+                    {
                         self.state = VarState::DontWarn
-                    },
+                    }
                     _ => (),
                 }
             }
@@ -2131,22 +2193,19 @@ fn is_loop_nested(cx: &LateContext<'_, '_>, loop_expr: &Expr<'_>, iter_expr: &Ex
                 if let ExprKind::Loop(..) = expr.kind {
                     return true;
                 };
-            },
+            }
             Some(Node::Block(block)) => {
-                let mut block_visitor = LoopNestVisitor {
-                    hir_id: id,
-                    iterator: iter_name,
-                    nesting: Unknown,
-                };
+                let mut block_visitor =
+                    LoopNestVisitor { hir_id: id, iterator: iter_name, nesting: Unknown };
                 walk_block(&mut block_visitor, block);
                 if block_visitor.nesting == RuledOut {
                     return false;
                 }
-            },
+            }
             Some(Node::Stmt(_)) => (),
             _ => {
                 return false;
-            },
+            }
         }
         id = parent;
     }
@@ -2191,7 +2250,7 @@ impl<'tcx> Visitor<'tcx> for LoopNestVisitor {
                 if match_var(path, self.iterator) {
                     self.nesting = RuledOut;
                 }
-            },
+            }
             _ => walk_expr(self, expr),
         }
     }
@@ -2224,7 +2283,11 @@ fn path_name(e: &Expr<'_>) -> Option<Name> {
     None
 }
 
-fn check_infinite_loop<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, cond: &'tcx Expr<'_>, expr: &'tcx Expr<'_>) {
+fn check_infinite_loop<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    cond: &'tcx Expr<'_>,
+    expr: &'tcx Expr<'_>,
+) {
     if constant(cx, cx.tables, cond).is_some() {
         // A pure constant condition (e.g., `while false`) is not linted.
         return;
@@ -2248,9 +2311,7 @@ fn check_infinite_loop<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, cond: &'tcx Expr<'_
     };
     let mutable_static_in_cond = var_visitor.def_ids.iter().any(|(_, v)| *v);
 
-    let mut has_break_or_return_visitor = HasBreakOrReturnVisitor {
-        has_break_or_return: false,
-    };
+    let mut has_break_or_return_visitor = HasBreakOrReturnVisitor { has_break_or_return: false };
     has_break_or_return_visitor.visit_expr(expr);
     let has_break_or_return = has_break_or_return_visitor.has_break_or_return;
 
@@ -2288,8 +2349,8 @@ impl<'a, 'tcx> Visitor<'tcx> for HasBreakOrReturnVisitor {
             ExprKind::Ret(_) | ExprKind::Break(_, _) => {
                 self.has_break_or_return = true;
                 return;
-            },
-            _ => {},
+            }
+            _ => {}
         }
 
         walk_expr(self, expr);

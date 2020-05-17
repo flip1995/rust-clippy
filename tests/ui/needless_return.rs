@@ -35,7 +35,7 @@ fn test_match(x: bool) -> bool {
         true => return false,
         false => {
             return true;
-        },
+        }
     }
 }
 

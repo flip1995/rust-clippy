@@ -17,10 +17,7 @@ pub enum DeprecationStatus {
 pub const BUILTIN_ATTRIBUTES: &[(&str, DeprecationStatus)] = &[
     ("author", DeprecationStatus::None),
     ("cognitive_complexity", DeprecationStatus::None),
-    (
-        "cyclomatic_complexity",
-        DeprecationStatus::Replaced("cognitive_complexity"),
-    ),
+    ("cyclomatic_complexity", DeprecationStatus::Replaced("cognitive_complexity")),
     ("dump", DeprecationStatus::None),
 ];
 
@@ -66,22 +63,21 @@ pub fn get_attr<'a>(
         let attr_segments = &attr.path.segments;
         if attr_segments.len() == 2 && attr_segments[0].ident.to_string() == "clippy" {
             if let Some(deprecation_status) =
-                BUILTIN_ATTRIBUTES
-                    .iter()
-                    .find_map(|(builtin_name, deprecation_status)| {
-                        if *builtin_name == attr_segments[1].ident.to_string() {
-                            Some(deprecation_status)
-                        } else {
-                            None
-                        }
-                    })
+                BUILTIN_ATTRIBUTES.iter().find_map(|(builtin_name, deprecation_status)| {
+                    if *builtin_name == attr_segments[1].ident.to_string() {
+                        Some(deprecation_status)
+                    } else {
+                        None
+                    }
+                })
             {
-                let mut diag = sess.struct_span_err(attr_segments[1].ident.span, "Usage of deprecated attribute");
+                let mut diag = sess
+                    .struct_span_err(attr_segments[1].ident.span, "Usage of deprecated attribute");
                 match *deprecation_status {
                     DeprecationStatus::Deprecated => {
                         diag.emit();
                         false
-                    },
+                    }
                     DeprecationStatus::Replaced(new_name) => {
                         diag.span_suggestion(
                             attr_segments[1].ident.span,
@@ -91,11 +87,11 @@ pub fn get_attr<'a>(
                         );
                         diag.emit();
                         false
-                    },
+                    }
                     DeprecationStatus::None => {
                         diag.cancel();
                         attr_segments[1].ident.to_string() == name
-                    },
+                    }
                 }
             } else {
                 sess.span_err(attr_segments[1].ident.span, "Usage of unknown attribute");
@@ -107,7 +103,12 @@ pub fn get_attr<'a>(
     })
 }
 
-fn parse_attrs<F: FnMut(u64)>(sess: &Session, attrs: &[ast::Attribute], name: &'static str, mut f: F) {
+fn parse_attrs<F: FnMut(u64)>(
+    sess: &Session,
+    attrs: &[ast::Attribute],
+    name: &'static str,
+    mut f: F,
+) {
     for attr in get_attr(sess, attrs, name) {
         if let Some(ref value) = attr.value_str() {
             if let Ok(value) = FromStr::from_str(&value.as_str()) {

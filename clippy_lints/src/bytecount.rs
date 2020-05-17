@@ -1,6 +1,6 @@
 use crate::utils::{
-    contains_name, get_pat_name, match_type, paths, single_segment_path, snippet_with_applicability,
-    span_lint_and_sugg, walk_ptrs_ty,
+    contains_name, get_pat_name, match_type, paths, single_segment_path,
+    snippet_with_applicability, span_lint_and_sugg, walk_ptrs_ty,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::UintTy;
@@ -102,16 +102,16 @@ fn check_arg(name: Symbol, arg: Symbol, needle: &Expr<'_>) -> bool {
 
 fn get_path_name(expr: &Expr<'_>) -> Option<Symbol> {
     match expr.kind {
-        ExprKind::Box(ref e) | ExprKind::AddrOf(BorrowKind::Ref, _, ref e) | ExprKind::Unary(UnOp::UnDeref, ref e) => {
-            get_path_name(e)
-        },
+        ExprKind::Box(ref e)
+        | ExprKind::AddrOf(BorrowKind::Ref, _, ref e)
+        | ExprKind::Unary(UnOp::UnDeref, ref e) => get_path_name(e),
         ExprKind::Block(ref b, _) => {
             if b.stmts.is_empty() {
                 b.expr.as_ref().and_then(|p| get_path_name(p))
             } else {
                 None
             }
-        },
+        }
         ExprKind::Path(ref qpath) => single_segment_path(qpath).map(|ps| ps.ident.name),
         _ => None,
     }

@@ -11,10 +11,7 @@ fn spanless_eq_ice() {
     let txt = "something";
     match txt {
         "something" => unsafe {
-            ptr::write(
-                ptr::null_mut() as *mut u32,
-                mem::transmute::<[u8; 4], _>([0, 0, 0, 255]),
-            )
+            ptr::write(ptr::null_mut() as *mut u32, mem::transmute::<[u8; 4], _>([0, 0, 0, 255]))
         },
         _ => unsafe {
             ptr::write(

@@ -2,14 +2,15 @@
 
 use crate::utils::ptr::get_spans;
 use crate::utils::{
-    is_type_diagnostic_item, match_qpath, match_type, paths, snippet_opt, span_lint, span_lint_and_sugg,
-    span_lint_and_then, walk_ptrs_hir_ty,
+    is_type_diagnostic_item, match_qpath, match_type, paths, snippet_opt, span_lint,
+    span_lint_and_sugg, span_lint_and_then, walk_ptrs_hir_ty,
 };
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{
-    BinOpKind, BodyId, Expr, ExprKind, FnDecl, FnRetTy, GenericArg, HirId, ImplItem, ImplItemKind, Item, ItemKind,
-    Lifetime, MutTy, Mutability, Node, PathSegment, QPath, TraitFn, TraitItem, TraitItemKind, Ty, TyKind,
+    BinOpKind, BodyId, Expr, ExprKind, FnDecl, FnRetTy, GenericArg, HirId, ImplItem, ImplItemKind,
+    Item, ItemKind, Lifetime, MutTy, Mutability, Node, PathSegment, QPath, TraitFn, TraitItem,
+    TraitItemKind, Ty, TyKind,
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
@@ -122,18 +123,16 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Ptr {
 
     fn check_trait_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx TraitItem<'_>) {
         if let TraitItemKind::Fn(ref sig, ref trait_method) = item.kind {
-            let body_id = if let TraitFn::Provided(b) = *trait_method {
-                Some(b)
-            } else {
-                None
-            };
+            let body_id = if let TraitFn::Provided(b) = *trait_method { Some(b) } else { None };
             check_fn(cx, &sig.decl, item.hir_id, body_id);
         }
     }
 
     fn check_expr(&mut self, cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>) {
         if let ExprKind::Binary(ref op, ref l, ref r) = expr.kind {
-            if (op.node == BinOpKind::Eq || op.node == BinOpKind::Ne) && (is_null_path(l) || is_null_path(r)) {
+            if (op.node == BinOpKind::Eq || op.node == BinOpKind::Ne)
+                && (is_null_path(l) || is_null_path(r))
+            {
                 span_lint(
                     cx,
                     CMP_NULL,
@@ -146,7 +145,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Ptr {
 }
 
 #[allow(clippy::too_many_lines)]
-fn check_fn(cx: &LateContext<'_, '_>, decl: &FnDecl<'_>, fn_id: HirId, opt_body_id: Option<BodyId>) {
+fn check_fn(
+    cx: &LateContext<'_, '_>,
+    decl: &FnDecl<'_>,
+    fn_id: HirId,
+    opt_body_id: Option<BodyId>,
+) {
     let fn_def_id = cx.tcx.hir().local_def_id(fn_id);
     let sig = cx.tcx.fn_sig(fn_def_id);
     let fn_ty = sig.skip_binder();
@@ -187,9 +191,10 @@ fn check_fn(cx: &LateContext<'_, '_>, decl: &FnDecl<'_>, fn_id: HirId, opt_body_
                             for (clonespan, suggestion) in spans {
                                 diag.span_suggestion(
                                     clonespan,
-                                    &snippet_opt(cx, clonespan).map_or("change the call to".into(), |x| {
-                                        Cow::Owned(format!("change `{}` to", x))
-                                    }),
+                                    &snippet_opt(cx, clonespan)
+                                        .map_or("change the call to".into(), |x| {
+                                            Cow::Owned(format!("change `{}` to", x))
+                                        }),
                                     suggestion.into(),
                                     Applicability::Unspecified,
                                 );
@@ -198,20 +203,28 @@ fn check_fn(cx: &LateContext<'_, '_>, decl: &FnDecl<'_>, fn_id: HirId, opt_body_
                     );
                 }
             } else if is_type_diagnostic_item(cx, ty, sym!(string_type)) {
-                if let Some(spans) = get_spans(cx, opt_body_id, idx, &[("clone", ".to_string()"), ("as_str", "")]) {
+                if let Some(spans) =
+                    get_spans(cx, opt_body_id, idx, &[("clone", ".to_string()"), ("as_str", "")])
+                {
                     span_lint_and_then(
                         cx,
                         PTR_ARG,
                         arg.span,
                         "writing `&String` instead of `&str` involves a new object where a slice will do.",
                         |diag| {
-                            diag.span_suggestion(arg.span, "change this to", "&str".into(), Applicability::Unspecified);
+                            diag.span_suggestion(
+                                arg.span,
+                                "change this to",
+                                "&str".into(),
+                                Applicability::Unspecified,
+                            );
                             for (clonespan, suggestion) in spans {
                                 diag.span_suggestion_short(
                                     clonespan,
-                                    &snippet_opt(cx, clonespan).map_or("change the call to".into(), |x| {
-                                        Cow::Owned(format!("change `{}` to", x))
-                                    }),
+                                    &snippet_opt(cx, clonespan)
+                                        .map_or("change the call to".into(), |x| {
+                                            Cow::Owned(format!("change `{}` to", x))
+                                        }),
                                     suggestion.into(),
                                     Applicability::Unspecified,
                                 );
@@ -282,18 +295,15 @@ fn check_fn(cx: &LateContext<'_, '_>, decl: &FnDecl<'_>, fn_id: HirId, opt_body_
 }
 
 fn get_rptr_lm<'tcx>(ty: &'tcx Ty<'tcx>) -> Option<(&'tcx Lifetime, Mutability, Span)> {
-    if let TyKind::Rptr(ref lt, ref m) = ty.kind {
-        Some((lt, m.mutbl, ty.span))
-    } else {
-        None
-    }
+    if let TyKind::Rptr(ref lt, ref m) = ty.kind { Some((lt, m.mutbl, ty.span)) } else { None }
 }
 
 fn is_null_path(expr: &Expr<'_>) -> bool {
     if let ExprKind::Call(ref pathexp, ref args) = expr.kind {
         if args.is_empty() {
             if let ExprKind::Path(ref path) = pathexp.kind {
-                return match_qpath(path, &paths::PTR_NULL) || match_qpath(path, &paths::PTR_NULL_MUT);
+                return match_qpath(path, &paths::PTR_NULL)
+                    || match_qpath(path, &paths::PTR_NULL_MUT);
             }
         }
     }

@@ -43,10 +43,7 @@ fn unnecessary_fold_should_ignore() {
 
 /// Should lint only the line containing the fold
 fn unnecessary_fold_over_multiple_lines() {
-    let _ = (0..3)
-        .map(|x| x + 1)
-        .filter(|x| x % 2 == 0)
-        .fold(false, |acc, x| acc || x > 2);
+    let _ = (0..3).map(|x| x + 1).filter(|x| x % 2 == 0).fold(false, |acc, x| acc || x > 2);
 }
 
 fn main() {}

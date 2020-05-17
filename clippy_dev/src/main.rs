@@ -92,7 +92,7 @@ fn main() {
     match matches.subcommand() {
         ("fmt", Some(matches)) => {
             fmt::run(matches.is_present("check"), matches.is_present("verbose"));
-        },
+        }
         ("update_lints", Some(matches)) => {
             if matches.is_present("print-only") {
                 update_lints::print_lints();
@@ -101,7 +101,7 @@ fn main() {
             } else {
                 update_lints::run(update_lints::UpdateMode::Change);
             }
-        },
+        }
         ("new_lint", Some(matches)) => {
             match new_lint::create(
                 matches.value_of("pass"),
@@ -111,10 +111,10 @@ fn main() {
                 Ok(_) => update_lints::run(update_lints::UpdateMode::Change),
                 Err(e) => eprintln!("Unable to create lint: {}", e),
             }
-        },
+        }
         ("limit_stderr_length", _) => {
             stderr_length_check::check();
-        },
-        _ => {},
+        }
+        _ => {}
     }
 }

@@ -126,8 +126,13 @@ pub fn span_lint_and_note<'a, T: LintContext>(
 /// Like `span_lint` but allows to add notes, help and suggestions using a closure.
 ///
 /// If you need to customize your lint output a lot, use this function.
-pub fn span_lint_and_then<'a, T: LintContext, F>(cx: &'a T, lint: &'static Lint, sp: Span, msg: &str, f: F)
-where
+pub fn span_lint_and_then<'a, T: LintContext, F>(
+    cx: &'a T,
+    lint: &'static Lint,
+    sp: Span,
+    msg: &str,
+    f: F,
+) where
     F: for<'b> FnOnce(&mut DiagnosticBuilder<'b>),
 {
     cx.struct_span_lint(lint, sp, |diag| {
@@ -138,7 +143,13 @@ where
     });
 }
 
-pub fn span_lint_hir(cx: &LateContext<'_, '_>, lint: &'static Lint, hir_id: HirId, sp: Span, msg: &str) {
+pub fn span_lint_hir(
+    cx: &LateContext<'_, '_>,
+    lint: &'static Lint,
+    hir_id: HirId,
+    sp: Span,
+    msg: &str,
+) {
     cx.tcx.struct_span_lint_hir(lint, hir_id, sp, |diag| {
         let mut diag = diag.build(msg);
         docs_link(&mut diag, lint);

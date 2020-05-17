@@ -1,12 +1,14 @@
 use crate::utils::paths;
 use crate::utils::{
-    is_automatically_derived, is_copy, match_path, span_lint_and_help, span_lint_and_note, span_lint_and_then,
+    is_automatically_derived, is_copy, match_path, span_lint_and_help, span_lint_and_note,
+    span_lint_and_then,
 };
 use if_chain::if_chain;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit::{walk_expr, walk_fn, walk_item, FnKind, NestedVisitorMap, Visitor};
 use rustc_hir::{
-    BlockCheckMode, BodyId, Expr, ExprKind, FnDecl, HirId, Item, ItemKind, TraitRef, UnsafeSource, Unsafety,
+    BlockCheckMode, BodyId, Expr, ExprKind, FnDecl, HirId, Item, ItemKind, TraitRef, UnsafeSource,
+    Unsafety,
 };
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::hir::map::Map;
@@ -107,11 +109,7 @@ declare_lint_pass!(Derive => [EXPL_IMPL_CLONE_ON_COPY, DERIVE_HASH_XOR_EQ, UNSAF
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for Derive {
     fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx Item<'_>) {
-        if let ItemKind::Impl {
-            of_trait: Some(ref trait_ref),
-            ..
-        } = item.kind
-        {
+        if let ItemKind::Impl { of_trait: Some(ref trait_ref), .. } = item.kind {
             let ty = cx.tcx.type_of(cx.tcx.hir().local_def_id(item.hir_id));
             let is_automatically_derived = is_automatically_derived(&*item.attrs);
 
@@ -181,7 +179,12 @@ fn check_hash_peq<'a, 'tcx>(
 }
 
 /// Implementation of the `EXPL_IMPL_CLONE_ON_COPY` lint.
-fn check_copy_clone<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, item: &Item<'_>, trait_ref: &TraitRef<'_>, ty: Ty<'tcx>) {
+fn check_copy_clone<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    item: &Item<'_>,
+    trait_ref: &TraitRef<'_>,
+    ty: Ty<'tcx>,
+) {
     if match_path(&trait_ref.path, &paths::CLONE_TRAIT) {
         if !is_copy(cx, ty) {
             return;
@@ -206,7 +209,7 @@ fn check_copy_clone<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, item: &Item<'_>, trait
                         }
                     }
                 }
-            },
+            }
             _ => (),
         }
 
@@ -268,7 +271,14 @@ struct UnsafeVisitor<'a, 'tcx> {
 impl<'tcx> Visitor<'tcx> for UnsafeVisitor<'_, 'tcx> {
     type Map = Map<'tcx>;
 
-    fn visit_fn(&mut self, kind: FnKind<'tcx>, decl: &'tcx FnDecl<'_>, body_id: BodyId, span: Span, id: HirId) {
+    fn visit_fn(
+        &mut self,
+        kind: FnKind<'tcx>,
+        decl: &'tcx FnDecl<'_>,
+        body_id: BodyId,
+        span: Span,
+        id: HirId,
+    ) {
         if self.has_unsafe {
             return;
         }
@@ -295,8 +305,8 @@ impl<'tcx> Visitor<'tcx> for UnsafeVisitor<'_, 'tcx> {
                 | BlockCheckMode::PushUnsafeBlock(UnsafeSource::UserProvided)
                 | BlockCheckMode::PopUnsafeBlock(UnsafeSource::UserProvided) => {
                     self.has_unsafe = true;
-                },
-                _ => {},
+                }
+                _ => {}
             }
         }
 

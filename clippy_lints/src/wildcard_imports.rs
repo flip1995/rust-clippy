@@ -86,10 +86,7 @@ pub struct WildcardImports {
 
 impl WildcardImports {
     pub fn new(warn_on_all: bool) -> Self {
-        Self {
-            warn_on_all,
-            test_modules_deep: 0,
-        }
+        Self { warn_on_all, test_modules_deep: 0 }
     }
 }
 
@@ -192,10 +189,7 @@ impl WildcardImports {
 // Allow "...prelude::*" imports.
 // Many crates have a prelude, and it is imported as a glob by design.
 fn is_prelude_import(segments: &[PathSegment<'_>]) -> bool {
-    segments
-        .iter()
-        .last()
-        .map_or(false, |ps| ps.ident.as_str() == "prelude")
+    segments.iter().last().map_or(false, |ps| ps.ident.as_str() == "prelude")
 }
 
 // Allow "super::*" imports in tests.

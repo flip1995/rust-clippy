@@ -124,7 +124,11 @@ impl SlowVectorInit {
     }
 
     /// Search initialization for the given vector
-    fn search_initialization<'tcx>(cx: &LateContext<'_, 'tcx>, vec_alloc: VecAllocation<'tcx>, parent_node: HirId) {
+    fn search_initialization<'tcx>(
+        cx: &LateContext<'_, 'tcx>,
+        vec_alloc: VecAllocation<'tcx>,
+        parent_node: HirId,
+    ) {
         let enclosing_body = get_enclosing_block(cx, parent_node);
 
         if enclosing_body.is_none() {
@@ -287,7 +291,7 @@ impl<'a, 'tcx> Visitor<'tcx> for VectorInitializationVisitor<'a, 'tcx> {
                 StmtKind::Expr(ref expr) | StmtKind::Semi(ref expr) => {
                     self.search_slow_extend_filling(expr);
                     self.search_slow_resize_filling(expr);
-                },
+                }
                 _ => (),
             }
 

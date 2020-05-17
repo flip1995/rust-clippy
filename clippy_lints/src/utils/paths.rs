@@ -38,7 +38,8 @@ pub const EXIT: [&str; 3] = ["std", "process", "exit"];
 pub const FILE: [&str; 3] = ["std", "fs", "File"];
 pub const FILE_TYPE: [&str; 3] = ["std", "fs", "FileType"];
 pub const FMT_ARGUMENTS_NEW_V1: [&str; 4] = ["core", "fmt", "Arguments", "new_v1"];
-pub const FMT_ARGUMENTS_NEW_V1_FORMATTED: [&str; 4] = ["core", "fmt", "Arguments", "new_v1_formatted"];
+pub const FMT_ARGUMENTS_NEW_V1_FORMATTED: [&str; 4] =
+    ["core", "fmt", "Arguments", "new_v1_formatted"];
 pub const FMT_ARGUMENTV1_NEW: [&str; 4] = ["core", "fmt", "ArgumentV1", "new"];
 pub const FROM_FROM: [&str; 4] = ["core", "convert", "From", "from"];
 pub const FROM_TRAIT: [&str; 3] = ["core", "convert", "From"];
@@ -60,7 +61,8 @@ pub const LINT: [&str; 3] = ["rustc_session", "lint", "Lint"];
 pub const MEM_DISCRIMINANT: [&str; 3] = ["core", "mem", "discriminant"];
 pub const MEM_FORGET: [&str; 3] = ["core", "mem", "forget"];
 pub const MEM_MAYBEUNINIT: [&str; 4] = ["core", "mem", "maybe_uninit", "MaybeUninit"];
-pub const MEM_MAYBEUNINIT_UNINIT: [&str; 5] = ["core", "mem", "maybe_uninit", "MaybeUninit", "uninit"];
+pub const MEM_MAYBEUNINIT_UNINIT: [&str; 5] =
+    ["core", "mem", "maybe_uninit", "MaybeUninit", "uninit"];
 pub const MEM_REPLACE: [&str; 3] = ["core", "mem", "replace"];
 pub const MUTEX_GUARD: [&str; 4] = ["std", "sync", "mutex", "MutexGuard"];
 pub const OPEN_OPTIONS: [&str; 3] = ["std", "fs", "OpenOptions"];
@@ -100,7 +102,8 @@ pub const RC_PTR_EQ: [&str; 4] = ["alloc", "rc", "Rc", "ptr_eq"];
 pub const RECEIVER: [&str; 4] = ["std", "sync", "mpsc", "Receiver"];
 pub const REGEX: [&str; 3] = ["regex", "re_unicode", "Regex"];
 pub const REGEX_BUILDER_NEW: [&str; 5] = ["regex", "re_builder", "unicode", "RegexBuilder", "new"];
-pub const REGEX_BYTES_BUILDER_NEW: [&str; 5] = ["regex", "re_builder", "bytes", "RegexBuilder", "new"];
+pub const REGEX_BYTES_BUILDER_NEW: [&str; 5] =
+    ["regex", "re_builder", "bytes", "RegexBuilder", "new"];
 pub const REGEX_BYTES_NEW: [&str; 4] = ["regex", "re_bytes", "Regex", "new"];
 pub const REGEX_BYTES_SET_NEW: [&str; 5] = ["regex", "re_set", "bytes", "RegexSet", "new"];
 pub const REGEX_NEW: [&str; 4] = ["regex", "re_unicode", "Regex", "new"];

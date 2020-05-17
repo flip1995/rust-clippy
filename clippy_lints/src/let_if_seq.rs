@@ -198,7 +198,11 @@ fn check_assign<'a, 'tcx>(
     None
 }
 
-fn used_in_expr<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, id: hir::HirId, expr: &'tcx hir::Expr<'_>) -> bool {
+fn used_in_expr<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    id: hir::HirId,
+    expr: &'tcx hir::Expr<'_>,
+) -> bool {
     let mut v = UsedVisitor { cx, id, used: false };
     intravisit::walk_expr(&mut v, expr);
     v.used

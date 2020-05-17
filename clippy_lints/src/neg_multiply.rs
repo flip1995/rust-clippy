@@ -31,10 +31,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NegMultiply {
         if let ExprKind::Binary(ref op, ref left, ref right) = e.kind {
             if BinOpKind::Mul == op.node {
                 match (&left.kind, &right.kind) {
-                    (&ExprKind::Unary(..), &ExprKind::Unary(..)) => {},
-                    (&ExprKind::Unary(UnOp::UnNeg, ref lit), _) => check_mul(cx, e.span, lit, right),
+                    (&ExprKind::Unary(..), &ExprKind::Unary(..)) => {}
+                    (&ExprKind::Unary(UnOp::UnNeg, ref lit), _) => {
+                        check_mul(cx, e.span, lit, right)
+                    }
                     (_, &ExprKind::Unary(UnOp::UnNeg, ref lit)) => check_mul(cx, e.span, lit, left),
-                    _ => {},
+                    _ => {}
                 }
             }
         }

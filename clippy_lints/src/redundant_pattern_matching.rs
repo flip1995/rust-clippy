@@ -79,7 +79,7 @@ fn find_sugg_for_if_let<'a, 'tcx>(
             } else {
                 return;
             }
-        },
+        }
 
         PatKind::Path(ref path) if match_qpath(path, &paths::OPTION_NONE) => "is_none()",
 
@@ -124,7 +124,12 @@ fn find_sugg_for_if_let<'a, 'tcx>(
     );
 }
 
-fn find_sugg_for_match<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, op: &Expr<'_>, arms: &[Arm<'_>]) {
+fn find_sugg_for_match<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'_>,
+    op: &Expr<'_>,
+    arms: &[Arm<'_>],
+) {
     if arms.len() == 2 {
         let node_pair = (&arms[0].pat.kind, &arms[1].pat.kind);
 
@@ -133,7 +138,9 @@ fn find_sugg_for_match<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_
                 PatKind::TupleStruct(ref path_left, ref patterns_left, _),
                 PatKind::TupleStruct(ref path_right, ref patterns_right, _),
             ) if patterns_left.len() == 1 && patterns_right.len() == 1 => {
-                if let (PatKind::Wild, PatKind::Wild) = (&patterns_left[0].kind, &patterns_right[0].kind) {
+                if let (PatKind::Wild, PatKind::Wild) =
+                    (&patterns_left[0].kind, &patterns_right[0].kind)
+                {
                     find_good_method_for_match(
                         arms,
                         path_left,
@@ -146,11 +153,15 @@ fn find_sugg_for_match<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_
                 } else {
                     None
                 }
-            },
-            (PatKind::TupleStruct(ref path_left, ref patterns, _), PatKind::Path(ref path_right))
-            | (PatKind::Path(ref path_left), PatKind::TupleStruct(ref path_right, ref patterns, _))
-                if patterns.len() == 1 =>
-            {
+            }
+            (
+                PatKind::TupleStruct(ref path_left, ref patterns, _),
+                PatKind::Path(ref path_right),
+            )
+            | (
+                PatKind::Path(ref path_left),
+                PatKind::TupleStruct(ref path_right, ref patterns, _),
+            ) if patterns.len() == 1 => {
                 if let PatKind::Wild = patterns[0].kind {
                     find_good_method_for_match(
                         arms,
@@ -164,7 +175,7 @@ fn find_sugg_for_match<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_
                 } else {
                     None
                 }
-            },
+            }
             _ => None,
         };
 
@@ -197,20 +208,23 @@ fn find_good_method_for_match<'a>(
     should_be_left: &'a str,
     should_be_right: &'a str,
 ) -> Option<&'a str> {
-    let body_node_pair = if match_qpath(path_left, expected_left) && match_qpath(path_right, expected_right) {
-        (&(*arms[0].body).kind, &(*arms[1].body).kind)
-    } else if match_qpath(path_right, expected_left) && match_qpath(path_left, expected_right) {
-        (&(*arms[1].body).kind, &(*arms[0].body).kind)
-    } else {
-        return None;
-    };
+    let body_node_pair =
+        if match_qpath(path_left, expected_left) && match_qpath(path_right, expected_right) {
+            (&(*arms[0].body).kind, &(*arms[1].body).kind)
+        } else if match_qpath(path_right, expected_left) && match_qpath(path_left, expected_right) {
+            (&(*arms[1].body).kind, &(*arms[0].body).kind)
+        } else {
+            return None;
+        };
 
     match body_node_pair {
-        (ExprKind::Lit(ref lit_left), ExprKind::Lit(ref lit_right)) => match (&lit_left.node, &lit_right.node) {
-            (LitKind::Bool(true), LitKind::Bool(false)) => Some(should_be_left),
-            (LitKind::Bool(false), LitKind::Bool(true)) => Some(should_be_right),
-            _ => None,
-        },
+        (ExprKind::Lit(ref lit_left), ExprKind::Lit(ref lit_right)) => {
+            match (&lit_left.node, &lit_right.node) {
+                (LitKind::Bool(true), LitKind::Bool(false)) => Some(should_be_left),
+                (LitKind::Bool(false), LitKind::Bool(true)) => Some(should_be_right),
+                _ => None,
+            }
+        }
         _ => None,
     }
 }

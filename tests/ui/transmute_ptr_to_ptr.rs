@@ -48,7 +48,8 @@ fn transmute_ptr_to_ptr() {
     let s = "hello world".to_owned();
     let lp = LifetimeParam { s: &s };
     let _: &LifetimeParam<'static> = unsafe { std::mem::transmute(&lp) };
-    let _: &GenericParam<&LifetimeParam<'static>> = unsafe { std::mem::transmute(&GenericParam { t: &lp }) };
+    let _: &GenericParam<&LifetimeParam<'static>> =
+        unsafe { std::mem::transmute(&GenericParam { t: &lp }) };
 }
 
 fn main() {}

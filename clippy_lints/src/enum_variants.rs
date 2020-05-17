@@ -109,10 +109,7 @@ pub struct EnumVariantNames {
 impl EnumVariantNames {
     #[must_use]
     pub fn new(threshold: u64) -> Self {
-        Self {
-            modules: Vec::new(),
-            threshold,
-        }
+        Self { modules: Vec::new(), threshold }
     }
 }
 
@@ -136,11 +133,7 @@ fn partial_match(pre: &str, name: &str) -> usize {
 fn partial_rmatch(post: &str, name: &str) -> usize {
     let mut name_iter = name.chars();
     let _ = name_iter.next(); // make sure the name is never fully matched
-    post.chars()
-        .rev()
-        .zip(name_iter.rev())
-        .take_while(|&(l, r)| l == r)
-        .count()
+    post.chars().rev().zip(name_iter.rev()).take_while(|&(l, r)| l == r).count()
 }
 
 fn check_variant(
@@ -268,7 +261,8 @@ impl EarlyLintPass for EnumVariantNames {
                         let rmatching = partial_rmatch(mod_camel, &item_camel);
                         let nchars = mod_camel.chars().count();
 
-                        let is_word_beginning = |c: char| c == '_' || c.is_uppercase() || c.is_numeric();
+                        let is_word_beginning =
+                            |c: char| c == '_' || c.is_uppercase() || c.is_numeric();
 
                         if matching == nchars {
                             match item_camel.chars().nth(nchars) {

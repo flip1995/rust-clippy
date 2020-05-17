@@ -27,9 +27,7 @@ fn mac() {
     println!("{}", a);
     // do not lint this, because it needs to be after `a`
     macro_rules! b {
-        () => {{
-            a = 6
-        }};
+        () => {{ a = 6 }};
     }
     b!();
     println!("{}", a);

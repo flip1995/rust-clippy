@@ -9,8 +9,8 @@ struct A {
 macro_rules! foo {
     ($param:expr) => {
         match $param {
-            A { a: 0, b: 0, c: "", .. } => {},
-            _ => {},
+            A { a: 0, b: 0, c: "", .. } => {}
+            _ => {}
         }
     };
 }
@@ -19,22 +19,22 @@ fn main() {
     let a_struct = A { a: 5, b: 42, c: "A" };
 
     match a_struct {
-        A { a: 5, b: 42, c: "", .. } => {}, // Lint
-        A { a: 0, b: 0, c: "", .. } => {},  // Lint
-        _ => {},
+        A { a: 5, b: 42, c: "", .. } => {} // Lint
+        A { a: 0, b: 0, c: "", .. } => {}  // Lint
+        _ => {}
     }
 
     match a_struct {
-        A { a: 5, b: 42, .. } => {},
-        A { a: 0, b: 0, c: "", .. } => {}, // Lint
-        _ => {},
+        A { a: 5, b: 42, .. } => {}
+        A { a: 0, b: 0, c: "", .. } => {} // Lint
+        _ => {}
     }
 
     // No lint
     match a_struct {
-        A { a: 5, .. } => {},
-        A { a: 0, b: 0, .. } => {},
-        _ => {},
+        A { a: 5, .. } => {}
+        A { a: 0, b: 0, .. } => {}
+        _ => {}
     }
 
     // No lint

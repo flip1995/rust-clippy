@@ -102,7 +102,10 @@ fn run_mode(cfg: &mut compiletest::Config) {
 }
 
 #[allow(clippy::identity_conversion)]
-fn run_ui_toml_tests(config: &compiletest::Config, mut tests: Vec<tester::TestDescAndFn>) -> Result<bool, io::Error> {
+fn run_ui_toml_tests(
+    config: &compiletest::Config,
+    mut tests: Vec<tester::TestDescAndFn>,
+) -> Result<bool, io::Error> {
     let mut result = true;
     let opts = compiletest::test_opts(config);
     for dir in fs::read_dir(&config.src_base)? {
@@ -145,11 +148,11 @@ fn run_ui_toml(config: &mut compiletest::Config) {
 
     let res = run_ui_toml_tests(&config, tests);
     match res {
-        Ok(true) => {},
+        Ok(true) => {}
         Ok(false) => panic!("Some tests failed"),
         Err(e) => {
             println!("I/O failure during tests: {:?}", e);
-        },
+        }
     }
 }
 

@@ -9,15 +9,8 @@ fn infinite_iters() {
     repeat(0_u8).collect::<Vec<_>>(); // infinite iter
     (0..8_u32).take_while(square_is_lower_64).cycle().count(); // infinite iter
     (0..8_u64).chain(0..).max(); // infinite iter
-    (0_usize..)
-        .chain([0usize, 1, 2].iter().cloned())
-        .skip_while(|x| *x != 42)
-        .min(); // infinite iter
-    (0..8_u32)
-        .rev()
-        .cycle()
-        .map(|x| x + 1_u32)
-        .for_each(|x| println!("{}", x)); // infinite iter
+    (0_usize..).chain([0usize, 1, 2].iter().cloned()).skip_while(|x| *x != 42).min(); // infinite iter
+    (0..8_u32).rev().cycle().map(|x| x + 1_u32).for_each(|x| println!("{}", x)); // infinite iter
     (0..3_u32).flat_map(|x| x..).sum::<u32>(); // infinite iter
     (0_usize..).flat_map(|x| 0..x).product::<usize>(); // infinite iter
     (0_u64..).filter(|x| x % 2 == 0).last(); // infinite iter

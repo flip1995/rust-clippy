@@ -1,7 +1,7 @@
 use crate::utils::SpanlessEq;
 use crate::utils::{
-    is_expn_of, match_def_path, match_qpath, match_type, method_calls, paths, run_lints, snippet, span_lint,
-    span_lint_and_help, span_lint_and_sugg, walk_ptrs_ty,
+    is_expn_of, match_def_path, match_qpath, match_type, method_calls, paths, run_lints, snippet,
+    span_lint, span_lint_and_help, span_lint_and_sugg, walk_ptrs_ty,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::{Crate as AstCrate, ItemKind, LitKind, NodeId};
@@ -12,7 +12,9 @@ use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::hir_id::CRATE_HIR_ID;
 use rustc_hir::intravisit::{NestedVisitorMap, Visitor};
-use rustc_hir::{Crate, Expr, ExprKind, HirId, Item, MutTy, Mutability, Path, StmtKind, Ty, TyKind};
+use rustc_hir::{
+    Crate, Expr, ExprKind, HirId, Item, MutTy, Mutability, Path, StmtKind, Ty, TyKind,
+};
 use rustc_lint::{EarlyContext, EarlyLintPass, LateContext, LateLintPass};
 use rustc_middle::hir::map::Map;
 use rustc_session::{declare_lint_pass, declare_tool_lint, impl_lint_pass};
@@ -211,14 +213,13 @@ declare_lint_pass!(ClippyLintsInternal => [CLIPPY_LINTS_INTERNAL]);
 
 impl EarlyLintPass for ClippyLintsInternal {
     fn check_crate(&mut self, cx: &EarlyContext<'_>, krate: &AstCrate) {
-        if let Some(utils) = krate
-            .module
-            .items
-            .iter()
-            .find(|item| item.ident.name.as_str() == "utils")
+        if let Some(utils) =
+            krate.module.items.iter().find(|item| item.ident.name.as_str() == "utils")
         {
             if let ItemKind::Mod(ref utils_mod) = utils.kind {
-                if let Some(paths) = utils_mod.items.iter().find(|item| item.ident.name.as_str() == "paths") {
+                if let Some(paths) =
+                    utils_mod.items.iter().find(|item| item.ident.name.as_str() == "paths")
+                {
                     if let ItemKind::Mod(ref paths_mod) = paths.kind {
                         let mut last_name: Option<SymbolStr> = None;
                         for item in &*paths_mod.items {
@@ -287,16 +288,9 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LintWithoutLintPass {
         } else if is_expn_of(item.span, "impl_lint_pass").is_some()
             || is_expn_of(item.span, "declare_lint_pass").is_some()
         {
-            if let hir::ItemKind::Impl {
-                of_trait: None,
-                items: ref impl_item_refs,
-                ..
-            } = item.kind
+            if let hir::ItemKind::Impl { of_trait: None, items: ref impl_item_refs, .. } = item.kind
             {
-                let mut collector = LintCollector {
-                    output: &mut self.registered_lints,
-                    cx,
-                };
+                let mut collector = LintCollector { output: &mut self.registered_lints, cx };
                 let body_id = cx.tcx.hir().body_owned_by(
                     impl_item_refs
                         .iter()
@@ -338,14 +332,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LintWithoutLintPass {
 }
 
 fn is_lint_ref_type<'tcx>(cx: &LateContext<'_, 'tcx>, ty: &Ty<'_>) -> bool {
-    if let TyKind::Rptr(
-        _,
-        MutTy {
-            ty: ref inner,
-            mutbl: Mutability::Not,
-        },
-    ) = ty.kind
-    {
+    if let TyKind::Rptr(_, MutTy { ty: ref inner, mutbl: Mutability::Not }) = ty.kind {
         if let TyKind::Path(ref path) = inner.kind {
             if let Res::Def(DefKind::Struct, def_id) = cx.tables.qpath_res(path, inner.hir_id) {
                 return match_def_path(cx, def_id, &paths::LINT);
@@ -467,7 +454,9 @@ impl EarlyLintPass for ProduceIce {
 
 fn is_trigger_fn(fn_kind: FnKind<'_>) -> bool {
     match fn_kind {
-        FnKind::Fn(_, ident, ..) => ident.name.as_str() == "it_looks_like_you_are_trying_to_kill_clippy",
+        FnKind::Fn(_, ident, ..) => {
+            ident.name.as_str() == "it_looks_like_you_are_trying_to_kill_clippy"
+        }
         FnKind::Closure(..) => false,
     }
 }
@@ -538,12 +527,7 @@ fn get_and_then_snippets<'a, 'hir>(
     let span_snippet = snippet(cx, and_then_snippets[2].span, "span");
     let msg_snippet = snippet(cx, and_then_snippets[3].span, r#""...""#);
 
-    AndThenSnippets {
-        cx: cx_snippet,
-        lint: lint_snippet,
-        span: span_snippet,
-        msg: msg_snippet,
-    }
+    AndThenSnippets { cx: cx_snippet, lint: lint_snippet, span: span_snippet, msg: msg_snippet }
 }
 
 struct SpanSuggestionSnippets<'a> {
@@ -558,7 +542,8 @@ fn span_suggestion_snippets<'a, 'hir>(
 ) -> SpanSuggestionSnippets<'a> {
     let help_snippet = snippet(cx, span_call_args[2].span, r#""...""#);
     let sugg_snippet = snippet(cx, span_call_args[3].span, "..");
-    let applicability_snippet = snippet(cx, span_call_args[4].span, "Applicability::MachineApplicable");
+    let applicability_snippet =
+        snippet(cx, span_call_args[4].span, "Applicability::MachineApplicable");
 
     SpanSuggestionSnippets {
         help: help_snippet,
@@ -600,11 +585,8 @@ fn suggest_help(
     help: &str,
     with_span: bool,
 ) {
-    let option_span = if with_span {
-        format!("Some({})", and_then_snippets.span)
-    } else {
-        "None".to_string()
-    };
+    let option_span =
+        if with_span { format!("Some({})", and_then_snippets.span) } else { "None".to_string() };
 
     span_lint_and_sugg(
         cx,
@@ -632,11 +614,8 @@ fn suggest_note(
     note: &str,
     with_span: bool,
 ) {
-    let note_span = if with_span {
-        format!("Some({})", and_then_snippets.span)
-    } else {
-        "None".to_string()
-    };
+    let note_span =
+        if with_span { format!("Some({})", and_then_snippets.span) } else { "None".to_string() };
 
     span_lint_and_sugg(
         cx,

@@ -4,8 +4,8 @@ use rustc_hir as hir;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::intravisit::{walk_item, walk_path, walk_ty, NestedVisitorMap, Visitor};
 use rustc_hir::{
-    def, FnDecl, FnRetTy, FnSig, GenericArg, HirId, ImplItem, ImplItemKind, Item, ItemKind, Path, PathSegment, QPath,
-    TyKind,
+    def, FnDecl, FnRetTy, FnSig, GenericArg, HirId, ImplItem, ImplItemKind, Item, ItemKind, Path,
+    PathSegment, QPath, TyKind,
 };
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::hir::map::Map;
@@ -57,7 +57,11 @@ declare_lint_pass!(UseSelf => [USE_SELF]);
 
 const SEGMENTS_MSG: &str = "segments should be composed of at least 1 element";
 
-fn span_use_self_lint(cx: &LateContext<'_, '_>, path: &Path<'_>, last_segment: Option<&PathSegment<'_>>) {
+fn span_use_self_lint(
+    cx: &LateContext<'_, '_>,
+    path: &Path<'_>,
+    last_segment: Option<&PathSegment<'_>>,
+) {
     let last_segment = last_segment.unwrap_or_else(|| path.segments.last().expect(SEGMENTS_MSG));
 
     // Path segments only include actual path, no methods or fields.
@@ -93,12 +97,12 @@ impl<'a, 'tcx> Visitor<'tcx> for SemanticUseSelfVisitor<'a, 'tcx> {
     fn visit_ty(&mut self, hir_ty: &'tcx hir::Ty<'_>) {
         if let TyKind::Path(QPath::Resolved(_, path)) = &hir_ty.kind {
             match path.res {
-                def::Res::SelfTy(..) => {},
+                def::Res::SelfTy(..) => {}
                 _ => {
                     if hir_ty_to_ty(self.cx.tcx, hir_ty) == self.self_ty {
                         span_use_self_lint(self.cx, path, None);
                     }
-                },
+                }
             }
         }
 
@@ -125,11 +129,8 @@ fn check_trait_method_impl_decl<'a, 'tcx>(
     let trait_method_sig = cx.tcx.fn_sig(trait_method.def_id);
     let trait_method_sig = cx.tcx.erase_late_bound_regions(&trait_method_sig);
 
-    let output_hir_ty = if let FnRetTy::Return(ty) = &impl_decl.output {
-        Some(&**ty)
-    } else {
-        None
-    };
+    let output_hir_ty =
+        if let FnRetTy::Return(ty) = &impl_decl.output { Some(&**ty) } else { None };
 
     // `impl_hir_ty` (of type `hir::Ty`) represents the type written in the signature.
     // `trait_ty` (of type `ty::Ty`) is the semantic type for the signature in the trait.
@@ -137,11 +138,8 @@ fn check_trait_method_impl_decl<'a, 'tcx>(
     // `hir_ty_to_ty(...)` to check semantic types of paths, and
     // `trait_ty` to determine which parts of the signature in the trait, mention
     // the type being implemented verbatim (as opposed to `Self`).
-    for (impl_hir_ty, trait_ty) in impl_decl
-        .inputs
-        .iter()
-        .chain(output_hir_ty)
-        .zip(trait_method_sig.inputs_and_output)
+    for (impl_hir_ty, trait_ty) in
+        impl_decl.inputs.iter().chain(output_hir_ty).zip(trait_method_sig.inputs_and_output)
     {
         // Check if the input/output type in the trait method specifies the implemented
         // type verbatim, and only suggest `Self` if that isn't the case.
@@ -223,11 +221,13 @@ impl<'a, 'tcx> Visitor<'tcx> for UseSelfVisitor<'a, 'tcx> {
                 let last_but_one = &path.segments[path.segments.len() - 2];
                 if last_but_one.ident.name != kw::SelfUpper {
                     let enum_def_id = match path.res {
-                        Res::Def(DefKind::Variant, variant_def_id) => self.cx.tcx.parent(variant_def_id),
+                        Res::Def(DefKind::Variant, variant_def_id) => {
+                            self.cx.tcx.parent(variant_def_id)
+                        }
                         Res::Def(DefKind::Ctor(def::CtorOf::Variant, _), ctor_def_id) => {
                             let variant_def_id = self.cx.tcx.parent(ctor_def_id);
                             variant_def_id.and_then(|def_id| self.cx.tcx.parent(def_id))
-                        },
+                        }
                         _ => None,
                     };
 
@@ -240,7 +240,9 @@ impl<'a, 'tcx> Visitor<'tcx> for UseSelfVisitor<'a, 'tcx> {
             if path.segments.last().expect(SEGMENTS_MSG).ident.name != kw::SelfUpper {
                 if self.item_path.res == path.res {
                     span_use_self_lint(self.cx, path, None);
-                } else if let Res::Def(DefKind::Ctor(def::CtorOf::Struct, _), ctor_def_id) = path.res {
+                } else if let Res::Def(DefKind::Ctor(def::CtorOf::Struct, _), ctor_def_id) =
+                    path.res
+                {
                     if self.item_path.res.opt_def_id() == self.cx.tcx.parent(ctor_def_id) {
                         span_use_self_lint(self.cx, path, None);
                     }
@@ -261,7 +263,7 @@ impl<'a, 'tcx> Visitor<'tcx> for UseSelfVisitor<'a, 'tcx> {
             | ItemKind::Impl { .. }
             | ItemKind::Fn(..) => {
                 // Don't check statements that shadow `Self` or where `Self` can't be used
-            },
+            }
             _ => walk_item(self, item),
         }
     }

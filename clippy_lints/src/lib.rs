@@ -370,10 +370,13 @@ pub fn read_conf(args: &[rustc_ast::ast::NestedMetaItem], sess: &Session) -> Con
                     Ok(Some(path)) => path,
                     Ok(None) => return Conf::default(),
                     Err(error) => {
-                        sess.struct_err(&format!("error finding Clippy's configuration file: {}", error))
-                            .emit();
+                        sess.struct_err(&format!(
+                            "error finding Clippy's configuration file: {}",
+                            error
+                        ))
+                        .emit();
                         return Conf::default();
-                    },
+                    }
                 },
             };
 
@@ -400,13 +403,13 @@ pub fn read_conf(args: &[rustc_ast::ast::NestedMetaItem], sess: &Session) -> Con
             }
 
             conf
-        },
+        }
         Err((err, span)) => {
             sess.struct_span_err(span, err)
                 .span_note(span, "Clippy will use default configuration")
                 .emit();
             Conf::default()
-        },
+        }
     }
 }
 

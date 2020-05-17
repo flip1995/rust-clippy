@@ -1,13 +1,7 @@
 // run-rustfix
 
 #![warn(clippy::needless_bool)]
-#![allow(
-    unused,
-    dead_code,
-    clippy::no_effect,
-    clippy::if_same_then_else,
-    clippy::needless_return
-)]
+#![allow(unused, dead_code, clippy::no_effect, clippy::if_same_then_else, clippy::needless_return)]
 
 use std::cell::Cell;
 

@@ -116,19 +116,19 @@ fn get_chunks_of_tabs(the_str: &str) -> Vec<(u32, u32)> {
                 // either string starts with double tab, then we have to set it active,
                 // otherwise is_active is true anyway
                 is_active = true;
-            },
+            }
             [_, '\t'] => {
                 // as ['\t', '\t'] is excluded, this has to be a start of a tab group,
                 // set indices accordingly
                 is_active = true;
                 current_start = index + 1;
-            },
+            }
             ['\t', _] => {
                 // this now has to be an end of the group, hence we have to push a new tuple
                 is_active = false;
                 spans.push((current_start, index + 1));
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 

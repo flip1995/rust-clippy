@@ -60,7 +60,12 @@ impl IntPlusOne {
         false
     }
 
-    fn check_binop(cx: &EarlyContext<'_>, binop: BinOpKind, lhs: &Expr, rhs: &Expr) -> Option<String> {
+    fn check_binop(
+        cx: &EarlyContext<'_>,
+        binop: BinOpKind,
+        lhs: &Expr,
+        rhs: &Expr,
+    ) -> Option<String> {
         match (binop, &lhs.kind, &rhs.kind) {
             // case where `x - 1 >= ...` or `-1 + x >= ...`
             (BinOpKind::Ge, &ExprKind::Binary(ref lhskind, ref lhslhs, ref lhsrhs), _) => {
@@ -68,14 +73,14 @@ impl IntPlusOne {
                     // `-1 + x`
                     (BinOpKind::Add, &ExprKind::Lit(ref lit), _) if Self::check_lit(lit, -1) => {
                         Self::generate_recommendation(cx, binop, lhsrhs, rhs, Side::LHS)
-                    },
+                    }
                     // `x - 1`
                     (BinOpKind::Sub, _, &ExprKind::Lit(ref lit)) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, lhslhs, rhs, Side::LHS)
-                    },
+                    }
                     _ => None,
                 }
-            },
+            }
             // case where `... >= y + 1` or `... >= 1 + y`
             (BinOpKind::Ge, _, &ExprKind::Binary(ref rhskind, ref rhslhs, ref rhsrhs))
                 if rhskind.node == BinOpKind::Add =>
@@ -84,10 +89,10 @@ impl IntPlusOne {
                     // `y + 1` and `1 + y`
                     (&ExprKind::Lit(ref lit), _) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, rhsrhs, lhs, Side::RHS)
-                    },
+                    }
                     (_, &ExprKind::Lit(ref lit)) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, rhslhs, lhs, Side::RHS)
-                    },
+                    }
                     _ => None,
                 }
             }
@@ -99,10 +104,10 @@ impl IntPlusOne {
                     // `1 + x` and `x + 1`
                     (&ExprKind::Lit(ref lit), _) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, lhsrhs, rhs, Side::LHS)
-                    },
+                    }
                     (_, &ExprKind::Lit(ref lit)) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, lhslhs, rhs, Side::LHS)
-                    },
+                    }
                     _ => None,
                 }
             }
@@ -112,14 +117,14 @@ impl IntPlusOne {
                     // `-1 + y`
                     (BinOpKind::Add, &ExprKind::Lit(ref lit), _) if Self::check_lit(lit, -1) => {
                         Self::generate_recommendation(cx, binop, rhsrhs, lhs, Side::RHS)
-                    },
+                    }
                     // `y - 1`
                     (BinOpKind::Sub, _, &ExprKind::Lit(ref lit)) if Self::check_lit(lit, 1) => {
                         Self::generate_recommendation(cx, binop, rhslhs, lhs, Side::RHS)
-                    },
+                    }
                     _ => None,
                 }
-            },
+            }
             _ => None,
         }
     }
@@ -139,8 +144,12 @@ impl IntPlusOne {
         if let Some(snippet) = snippet_opt(cx, node.span) {
             if let Some(other_side_snippet) = snippet_opt(cx, other_side.span) {
                 let rec = match side {
-                    Side::LHS => Some(format!("{} {} {}", snippet, binop_string, other_side_snippet)),
-                    Side::RHS => Some(format!("{} {} {}", other_side_snippet, binop_string, snippet)),
+                    Side::LHS => {
+                        Some(format!("{} {} {}", snippet, binop_string, other_side_snippet))
+                    }
+                    Side::RHS => {
+                        Some(format!("{} {} {}", other_side_snippet, binop_string, snippet))
+                    }
                 };
                 return rec;
             }

@@ -14,15 +14,7 @@ macro_rules! get_version_info {
         let commit_hash = option_env!("GIT_HASH").map(str::to_string);
         let commit_date = option_env!("COMMIT_DATE").map(str::to_string);
 
-        VersionInfo {
-            major,
-            minor,
-            patch,
-            host_compiler,
-            commit_hash,
-            commit_date,
-            crate_name,
-        }
+        VersionInfo { major, minor, patch, host_compiler, commit_hash, commit_date, crate_name }
     }};
 }
 
@@ -120,11 +112,11 @@ pub fn get_channel() -> Option<String> {
                         // default to nightly if we fail to parse
                         Some(String::from("nightly"))
                     }
-                },
+                }
                 // default to nightly
                 None => Some(String::from("nightly")),
             }
-        },
+        }
     }
 }
 

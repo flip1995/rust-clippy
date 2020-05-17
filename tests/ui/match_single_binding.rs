@@ -28,7 +28,7 @@ fn main() {
     match (a, b, c) {
         (x, y, z) => {
             println!("{} {} {}", x, y, z);
-        },
+        }
     }
     // Lint
     match (a, b, c) {
@@ -56,7 +56,7 @@ fn main() {
         _ => {
             let x = 29;
             println!("x has a value of {}", x);
-        },
+        }
     }
     // Lint
     match a {
@@ -65,7 +65,7 @@ fn main() {
             if e >= 5 {
                 println!("e is superior to 5");
             }
-        },
+        }
     }
     // Lint
     let p = Point { x: 0, y: 7 };

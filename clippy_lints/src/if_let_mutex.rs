@@ -42,22 +42,12 @@ declare_lint_pass!(IfLetMutex => [IF_LET_MUTEX]);
 
 impl LateLintPass<'_, '_> for IfLetMutex {
     fn check_expr(&mut self, cx: &LateContext<'_, '_>, ex: &'_ Expr<'_>) {
-        let mut arm_visit = ArmVisitor {
-            mutex_lock_called: false,
-            found_mutex: None,
-            cx,
-        };
-        let mut op_visit = OppVisitor {
-            mutex_lock_called: false,
-            found_mutex: None,
-            cx,
-        };
+        let mut arm_visit = ArmVisitor { mutex_lock_called: false, found_mutex: None, cx };
+        let mut op_visit = OppVisitor { mutex_lock_called: false, found_mutex: None, cx };
         if let ExprKind::Match(
             ref op,
             ref arms,
-            MatchSource::IfLetDesugar {
-                contains_else_clause: true,
-            },
+            MatchSource::IfLetDesugar { contains_else_clause: true },
         ) = ex.kind
         {
             op_visit.visit_expr(op);
@@ -66,7 +56,9 @@ impl LateLintPass<'_, '_> for IfLetMutex {
                     arm_visit.visit_arm(arm);
                 }
 
-                if arm_visit.mutex_lock_called && arm_visit.same_mutex(cx, op_visit.found_mutex.unwrap()) {
+                if arm_visit.mutex_lock_called
+                    && arm_visit.same_mutex(cx, op_visit.found_mutex.unwrap())
+                {
                     span_lint_and_help(
                         cx,
                         IF_LET_MUTEX,

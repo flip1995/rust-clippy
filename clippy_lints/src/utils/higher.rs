@@ -47,7 +47,10 @@ pub struct Range<'a> {
 }
 
 /// Higher a `hir` range to something similar to `ast::ExprKind::Range`.
-pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) -> Option<Range<'b>> {
+pub fn range<'a, 'b, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'b hir::Expr<'_>,
+) -> Option<Range<'b>> {
     /// Finds the field named `name` in the field. Always return `Some` for
     /// convenience.
     fn get_field<'c>(name: &str, fields: &'c [hir::Field<'_>]) -> Option<&'c hir::Expr<'c>> {
@@ -72,14 +75,8 @@ pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) 
         return None;
     }
     let type_name = def_path.data.get(2)?.data.as_symbol();
-    let range_types = [
-        "RangeFrom",
-        "RangeFull",
-        "RangeInclusive",
-        "Range",
-        "RangeTo",
-        "RangeToInclusive",
-    ];
+    let range_types =
+        ["RangeFrom", "RangeFull", "RangeInclusive", "Range", "RangeTo", "RangeToInclusive"];
     if !range_types.contains(&&*type_name.as_str()) {
         return None;
     }
@@ -91,18 +88,15 @@ pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) 
     match expr.kind {
         hir::ExprKind::Path(ref path) => {
             if match_qpath(path, &paths::RANGE_FULL_STD) || match_qpath(path, &paths::RANGE_FULL) {
-                Some(Range {
-                    start: None,
-                    end: None,
-                    limits: ast::RangeLimits::HalfOpen,
-                })
+                Some(Range { start: None, end: None, limits: ast::RangeLimits::HalfOpen })
             } else {
                 None
             }
-        },
+        }
         hir::ExprKind::Call(ref path, ref args) => {
             if let hir::ExprKind::Path(ref path) = path.kind {
-                if match_qpath(path, &paths::RANGE_INCLUSIVE_STD_NEW) || match_qpath(path, &paths::RANGE_INCLUSIVE_NEW)
+                if match_qpath(path, &paths::RANGE_INCLUSIVE_STD_NEW)
+                    || match_qpath(path, &paths::RANGE_INCLUSIVE_NEW)
                 {
                     Some(Range {
                         start: Some(&args[0]),
@@ -115,7 +109,7 @@ pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) 
             } else {
                 None
             }
-        },
+        }
         hir::ExprKind::Struct(ref path, ref fields, None) => {
             if match_qpath(path, &paths::RANGE_FROM_STD) || match_qpath(path, &paths::RANGE_FROM) {
                 Some(Range {
@@ -129,14 +123,16 @@ pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) 
                     end: Some(get_field("end", fields)?),
                     limits: ast::RangeLimits::HalfOpen,
                 })
-            } else if match_qpath(path, &paths::RANGE_TO_INCLUSIVE_STD) || match_qpath(path, &paths::RANGE_TO_INCLUSIVE)
+            } else if match_qpath(path, &paths::RANGE_TO_INCLUSIVE_STD)
+                || match_qpath(path, &paths::RANGE_TO_INCLUSIVE)
             {
                 Some(Range {
                     start: None,
                     end: Some(get_field("end", fields)?),
                     limits: ast::RangeLimits::Closed,
                 })
-            } else if match_qpath(path, &paths::RANGE_TO_STD) || match_qpath(path, &paths::RANGE_TO) {
+            } else if match_qpath(path, &paths::RANGE_TO_STD) || match_qpath(path, &paths::RANGE_TO)
+            {
                 Some(Range {
                     start: None,
                     end: Some(get_field("end", fields)?),
@@ -145,7 +141,7 @@ pub fn range<'a, 'b, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'b hir::Expr<'_>) 
             } else {
                 None
             }
-        },
+        }
         _ => None,
     }
 }
@@ -205,7 +201,9 @@ pub fn for_loop<'tcx>(
 
 /// Recover the essential nodes of a desugared while loop:
 /// `while cond { body }` becomes `(cond, body)`.
-pub fn while_loop<'tcx>(expr: &'tcx hir::Expr<'tcx>) -> Option<(&'tcx hir::Expr<'tcx>, &'tcx hir::Expr<'tcx>)> {
+pub fn while_loop<'tcx>(
+    expr: &'tcx hir::Expr<'tcx>,
+) -> Option<(&'tcx hir::Expr<'tcx>, &'tcx hir::Expr<'tcx>)> {
     if_chain! {
         if let hir::ExprKind::Loop(block, _, hir::LoopSource::While) = &expr.kind;
         if let hir::Block { expr: Some(expr), .. } = &**block;
@@ -224,23 +222,20 @@ pub fn while_loop<'tcx>(expr: &'tcx hir::Expr<'tcx>) -> Option<(&'tcx hir::Expr<
 /// `if cond { then } else { els }` becomes `(cond, then, Some(els))`
 pub fn if_block<'tcx>(
     expr: &'tcx hir::Expr<'tcx>,
-) -> Option<(
-    &'tcx hir::Expr<'tcx>,
-    &'tcx hir::Expr<'tcx>,
-    Option<&'tcx hir::Expr<'tcx>>,
-)> {
-    if let hir::ExprKind::Match(ref cond, ref arms, hir::MatchSource::IfDesugar { contains_else_clause }) = expr.kind {
+) -> Option<(&'tcx hir::Expr<'tcx>, &'tcx hir::Expr<'tcx>, Option<&'tcx hir::Expr<'tcx>>)> {
+    if let hir::ExprKind::Match(
+        ref cond,
+        ref arms,
+        hir::MatchSource::IfDesugar { contains_else_clause },
+    ) = expr.kind
+    {
         let cond = if let hir::ExprKind::DropTemps(ref cond) = cond.kind {
             cond
         } else {
             panic!("If block desugar must contain DropTemps");
         };
         let then = &arms[0].body;
-        let els = if contains_else_clause {
-            Some(&*arms[1].body)
-        } else {
-            None
-        };
+        let els = if contains_else_clause { Some(&*arms[1].body) } else { None };
         Some((cond, then, els))
     } else {
         None

@@ -1,6 +1,7 @@
 use crate::utils::paths;
 use crate::utils::{
-    is_copy, is_type_diagnostic_item, match_trait_method, remove_blocks, snippet_with_applicability, span_lint_and_sugg,
+    is_copy, is_type_diagnostic_item, match_trait_method, remove_blocks,
+    snippet_with_applicability, span_lint_and_sugg,
 };
 use if_chain::if_chain;
 use rustc_errors::Applicability;
@@ -127,10 +128,7 @@ fn lint(cx: &LateContext<'_, '_>, replace: Span, root: Span, copied: bool) {
             replace,
             "You are using an explicit closure for copying elements",
             "Consider calling the dedicated `copied` method",
-            format!(
-                "{}.copied()",
-                snippet_with_applicability(cx, root, "..", &mut applicability)
-            ),
+            format!("{}.copied()", snippet_with_applicability(cx, root, "..", &mut applicability)),
             applicability,
         )
     } else {
@@ -140,10 +138,7 @@ fn lint(cx: &LateContext<'_, '_>, replace: Span, root: Span, copied: bool) {
             replace,
             "You are using an explicit closure for cloning elements",
             "Consider calling the dedicated `cloned` method",
-            format!(
-                "{}.cloned()",
-                snippet_with_applicability(cx, root, "..", &mut applicability)
-            ),
+            format!("{}.cloned()", snippet_with_applicability(cx, root, "..", &mut applicability)),
             applicability,
         )
     }

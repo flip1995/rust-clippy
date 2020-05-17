@@ -13,7 +13,8 @@ enum Dessert {
 }
 
 fn main() {
-    let desserts_of_the_week = vec![Dessert::Banana, Dessert::Cake(Flavor::Chocolate), Dessert::Pudding];
+    let desserts_of_the_week =
+        vec![Dessert::Banana, Dessert::Cake(Flavor::Chocolate), Dessert::Pudding];
 
     let a = ["lol", "NaN", "2", "5", "Xunda"];
 

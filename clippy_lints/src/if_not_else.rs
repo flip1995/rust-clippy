@@ -64,7 +64,7 @@ impl EarlyLintPass for IfNotElse {
                             None,
                             "remove the `!` and swap the blocks of the `if`/`else`",
                         );
-                    },
+                    }
                     ExprKind::Binary(ref kind, _, _) if kind.node == BinOpKind::Ne => {
                         span_lint_and_help(
                             cx,
@@ -74,7 +74,7 @@ impl EarlyLintPass for IfNotElse {
                             None,
                             "change to `==` and swap the blocks of the `if`/`else`",
                         );
-                    },
+                    }
                     _ => (),
                 }
             }

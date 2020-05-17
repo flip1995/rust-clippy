@@ -1,4 +1,6 @@
-use crate::utils::{is_type_diagnostic_item, method_chain_args, snippet_with_applicability, span_lint_and_sugg};
+use crate::utils::{
+    is_type_diagnostic_item, method_chain_args, snippet_with_applicability, span_lint_and_sugg,
+};
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{Expr, ExprKind, MatchSource, PatKind, QPath};

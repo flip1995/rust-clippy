@@ -193,11 +193,7 @@ impl_lint_pass!(Write => [
 
 impl EarlyLintPass for Write {
     fn check_item(&mut self, _: &EarlyContext<'_>, item: &Item) {
-        if let ItemKind::Impl {
-            of_trait: Some(trait_ref),
-            ..
-        } = &item.kind
-        {
+        if let ItemKind::Impl { of_trait: Some(trait_ref), .. } = &item.kind {
             let trait_name = trait_ref
                 .path
                 .segments
@@ -284,7 +280,9 @@ impl EarlyLintPass for Write {
                             applicability = Applicability::HasPlaceholders;
                             Cow::Borrowed("v")
                         },
-                        move |expr| snippet_with_applicability(cx, expr.span, "v", &mut applicability),
+                        move |expr| {
+                            snippet_with_applicability(cx, expr.span, "v", &mut applicability)
+                        },
                     );
 
                     span_lint_and_sugg(
@@ -353,7 +351,8 @@ impl Write {
         is_write: bool,
     ) -> (Option<StrLit>, Option<Expr>) {
         use fmt_macros::{
-            AlignUnknown, ArgumentImplicitlyIs, ArgumentIs, ArgumentNamed, CountImplied, FormatSpec, Parser, Piece,
+            AlignUnknown, ArgumentImplicitlyIs, ArgumentIs, ArgumentNamed, CountImplied,
+            FormatSpec, Parser, Piece,
         };
         let tts = tts.clone();
 
@@ -384,7 +383,12 @@ impl Write {
             if let Piece::NextArgument(arg) = piece {
                 if !self.in_debug_impl && arg.format.ty == "?" {
                     // FIXME: modify rustc's fmt string parser to give us the current span
-                    span_lint(cx, USE_DEBUG, parser.prev_token.span, "use of `Debug`-based formatting");
+                    span_lint(
+                        cx,
+                        USE_DEBUG,
+                        parser.prev_token.span,
+                        "use of `Debug`-based formatting",
+                    );
                 }
                 args.push(arg);
             }
@@ -422,15 +426,15 @@ impl Write {
                                     all_simple &= arg.format == SIMPLE;
                                     seen = true;
                                 }
-                            },
-                            ArgumentNamed(_) => {},
+                            }
+                            ArgumentNamed(_) => {}
                         }
                     }
                     if all_simple && seen {
                         span_lint(cx, lint, token_expr.span, "literal with an empty format string");
                     }
                     idx += 1;
-                },
+                }
                 ExprKind::Assign(lhs, rhs, _) => {
                     if let ExprKind::Lit(_) = rhs.kind {
                         if let ExprKind::Path(_, p) = &lhs.kind {
@@ -438,21 +442,26 @@ impl Write {
                             let mut seen = false;
                             for arg in &args {
                                 match arg.position {
-                                    ArgumentImplicitlyIs(_) | ArgumentIs(_) => {},
+                                    ArgumentImplicitlyIs(_) | ArgumentIs(_) => {}
                                     ArgumentNamed(name) => {
                                         if *p == name {
                                             seen = true;
                                             all_simple &= arg.format == SIMPLE;
                                         }
-                                    },
+                                    }
                                 }
                             }
                             if all_simple && seen {
-                                span_lint(cx, lint, rhs.span, "literal with an empty format string");
+                                span_lint(
+                                    cx,
+                                    lint,
+                                    rhs.span,
+                                    "literal with an empty format string",
+                                );
                             }
                         }
                     }
-                },
+                }
                 _ => idx += 1,
             }
         }

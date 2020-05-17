@@ -11,11 +11,7 @@ fn test_missing_tests() {
             false,
             format!(
                 "Didn't see a test file for the following files:\n\n{}\n",
-                missing_files
-                    .iter()
-                    .map(|s| format!("\t{}", s))
-                    .collect::<Vec<_>>()
-                    .join("\n")
+                missing_files.iter().map(|s| format!("\t{}", s)).collect::<Vec<_>>().join("\n")
             )
         );
     }
@@ -46,7 +42,7 @@ fn explore_directory(dir: &Path) -> Vec<String> {
                         if file_stem != current_file {
                             missing_files.push(path.to_str().unwrap().to_string());
                         }
-                    },
+                    }
                     _ => continue,
                 };
             }

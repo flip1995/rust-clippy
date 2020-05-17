@@ -182,14 +182,7 @@ fn check_log_base(cx: &LateContext<'_, '_>, expr: &Expr<'_>, args: &[Expr<'_>]) 
 // TODO: Lint expressions of the form `(x + y).ln()` where y > 1 and
 // suggest usage of `(x + (y - 1)).ln_1p()` instead
 fn check_ln1p(cx: &LateContext<'_, '_>, expr: &Expr<'_>, args: &[Expr<'_>]) {
-    if let ExprKind::Binary(
-        Spanned {
-            node: BinOpKind::Add, ..
-        },
-        lhs,
-        rhs,
-    ) = &args[0].kind
-    {
+    if let ExprKind::Binary(Spanned { node: BinOpKind::Add, .. }, lhs, rhs) = &args[0].kind {
         let recv = match (constant(cx, cx.tables, lhs), constant(cx, cx.tables, rhs)) {
             (Some((value, _)), _) if F32(1.0) == value || F64(1.0) == value => rhs,
             (_, Some((value, _))) if F32(1.0) == value || F64(1.0) == value => lhs,
@@ -221,14 +214,14 @@ fn get_integer_from_float_constant(value: &Constant) -> Option<i32> {
             } else {
                 None
             }
-        },
+        }
         F64(num) if num.fract() == 0.0 => {
             if (-2_147_483_648.0..2_147_483_648.0).contains(num) {
                 Some(num.round() as i32)
             } else {
                 None
             }
-        },
+        }
         _ => None,
     }
 }
@@ -323,7 +316,10 @@ fn check_expm1(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
     }
 }
 
-fn is_float_mul_expr<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option<(&'a Expr<'a>, &'a Expr<'a>)> {
+fn is_float_mul_expr<'a>(
+    cx: &LateContext<'_, '_>,
+    expr: &'a Expr<'a>,
+) -> Option<(&'a Expr<'a>, &'a Expr<'a>)> {
     if_chain! {
         if let ExprKind::Binary(Spanned { node: BinOpKind::Mul, .. }, ref lhs, ref rhs) = &expr.kind;
         if cx.tables.expr_ty(lhs).is_floating_point();
@@ -338,14 +334,7 @@ fn is_float_mul_expr<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option
 
 // TODO: Fix rust-lang/rust-clippy#4735
 fn check_mul_add(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
-    if let ExprKind::Binary(
-        Spanned {
-            node: BinOpKind::Add, ..
-        },
-        lhs,
-        rhs,
-    ) = &expr.kind
-    {
+    if let ExprKind::Binary(Spanned { node: BinOpKind::Add, .. }, lhs, rhs) = &expr.kind {
         let (recv, arg1, arg2) = if let Some((inner_lhs, inner_rhs)) = is_float_mul_expr(cx, lhs) {
             (inner_lhs, inner_rhs, rhs)
         } else if let Some((inner_lhs, inner_rhs)) = is_float_mul_expr(cx, rhs) {
@@ -420,7 +409,11 @@ fn is_zero(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
 /// one of the two expressions
 /// If the two expressions are not negations of each other, then it
 /// returns None.
-fn are_negated<'a>(cx: &LateContext<'_, '_>, expr1: &'a Expr<'a>, expr2: &'a Expr<'a>) -> Option<(bool, &'a Expr<'a>)> {
+fn are_negated<'a>(
+    cx: &LateContext<'_, '_>,
+    expr1: &'a Expr<'a>,
+    expr2: &'a Expr<'a>,
+) -> Option<(bool, &'a Expr<'a>)> {
     if let ExprKind::Unary(UnOp::UnNeg, expr1_negated) = &expr1.kind {
         if are_exprs_equal(cx, expr1_negated, expr2) {
             return Some((false, expr2));
@@ -491,7 +484,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for FloatingPointArithmetic {
                     "ln" => check_ln1p(cx, expr, args),
                     "log" => check_log_base(cx, expr, args),
                     "powf" => check_powf(cx, expr, args),
-                    _ => {},
+                    _ => {}
                 }
             }
         } else {

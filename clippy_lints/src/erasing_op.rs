@@ -39,7 +39,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for ErasingOp {
                 BinOpKind::Mul | BinOpKind::BitAnd => {
                     check(cx, left, e.span);
                     check(cx, right, e.span);
-                },
+                }
                 BinOpKind::Div => check(cx, left, e.span),
                 _ => (),
             }

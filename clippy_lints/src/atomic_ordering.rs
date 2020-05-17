@@ -54,9 +54,7 @@ const ATOMIC_TYPES: [&str; 12] = [
 
 fn type_is_atomic(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
     if let ty::Adt(&ty::AdtDef { did, .. }, _) = cx.tables.expr_ty(expr).kind {
-        ATOMIC_TYPES
-            .iter()
-            .any(|ty| match_def_path(cx, did, &["core", "sync", "atomic", ty]))
+        ATOMIC_TYPES.iter().any(|ty| match_def_path(cx, did, &["core", "sync", "atomic", ty]))
     } else {
         false
     }

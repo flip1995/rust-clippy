@@ -141,9 +141,7 @@ fn main() {
     let copy_struct = CopyStruct { opt: Some(54) };
     copy_struct.func();
 
-    let move_struct = MoveStruct {
-        opt: Some(vec![42, 1337]),
-    };
+    let move_struct = MoveStruct { opt: Some(vec![42, 1337]) };
     move_struct.ref_func();
     move_struct.clone().mov_func_reuse();
     move_struct.mov_func_no_use();

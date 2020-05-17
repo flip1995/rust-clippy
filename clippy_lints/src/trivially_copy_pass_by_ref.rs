@@ -73,7 +73,13 @@ impl<'a, 'tcx> TriviallyCopyPassByRef {
         Self { limit }
     }
 
-    fn check_poly_fn(&mut self, cx: &LateContext<'_, 'tcx>, hir_id: HirId, decl: &FnDecl<'_>, span: Option<Span>) {
+    fn check_poly_fn(
+        &mut self,
+        cx: &LateContext<'_, 'tcx>,
+        hir_id: HirId,
+        decl: &FnDecl<'_>,
+        span: Option<Span>,
+    ) {
         let fn_def_id = cx.tcx.hir().local_def_id(hir_id);
 
         let fn_sig = cx.tcx.fn_sig(fn_def_id);
@@ -159,7 +165,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for TriviallyCopyPassByRef {
                         return;
                     }
                 }
-            },
+            }
             FnKind::Method(..) => (),
             _ => return,
         }

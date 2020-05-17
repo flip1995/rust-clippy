@@ -12,10 +12,7 @@ impl<T> Copy for Key<T> {}
 
 impl<T> Clone for Key<T> {
     fn clone(&self) -> Self {
-        Key {
-            __name: self.__name,
-            __phantom: self.__phantom,
-        }
+        Key { __name: self.__name, __phantom: self.__phantom }
     }
 }
 

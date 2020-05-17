@@ -90,7 +90,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for FutureNotSend {
                         |db| {
                             cx.tcx.infer_ctxt().enter(|infcx| {
                                 for FulfillmentError { obligation, .. } in send_errors {
-                                    infcx.maybe_note_obligation_cause_for_async_await(db, &obligation);
+                                    infcx.maybe_note_obligation_cause_for_async_await(
+                                        db,
+                                        &obligation,
+                                    );
                                     if let Trait(trait_pred, _) = obligation.predicate {
                                         let trait_ref = trait_pred.to_poly_trait_ref();
                                         db.note(&*format!(

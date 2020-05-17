@@ -140,17 +140,13 @@ fn max_digits(fty: FloatTy) -> u32 {
 #[must_use]
 fn count_digits(s: &str) -> usize {
     // Note that s does not contain the f32/64 suffix, and underscores have been stripped
-    s.chars()
-        .filter(|c| *c != '-' && *c != '.')
-        .take_while(|c| *c != 'e' && *c != 'E')
-        .fold(0, |count, c| {
+    s.chars().filter(|c| *c != '-' && *c != '.').take_while(|c| *c != 'e' && *c != 'E').fold(
+        0,
+        |count, c| {
             // leading zeros
-            if c == '0' && count == 0 {
-                count
-            } else {
-                count + 1
-            }
-        })
+            if c == '0' && count == 0 { count } else { count + 1 }
+        },
+    )
 }
 
 enum FloatFormat {

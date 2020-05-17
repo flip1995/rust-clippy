@@ -1,4 +1,6 @@
-use crate::utils::{self, is_type_diagnostic_item, match_type, snippet, span_lint_and_sugg, walk_ptrs_ty};
+use crate::utils::{
+    self, is_type_diagnostic_item, match_type, snippet, span_lint_and_sugg, walk_ptrs_ty,
+};
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{Expr, ExprKind, MatchSource};
@@ -73,7 +75,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for MatchOnVecItems {
     }
 }
 
-fn is_vec_indexing<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'tcx>) -> Option<&'tcx Expr<'tcx>> {
+fn is_vec_indexing<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'tcx>,
+) -> Option<&'tcx Expr<'tcx>> {
     if_chain! {
         if let ExprKind::Index(ref array, ref index) = expr.kind;
         if is_vector(cx, array);

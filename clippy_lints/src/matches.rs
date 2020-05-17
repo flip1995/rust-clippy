@@ -3,18 +3,18 @@ use crate::utils::paths;
 use crate::utils::sugg::Sugg;
 use crate::utils::usage::is_unused;
 use crate::utils::{
-    expr_block, get_arg_name, get_parent_expr, in_macro, indent_of, is_allowed, is_expn_of, is_refutable,
-    is_type_diagnostic_item, is_wild, match_qpath, match_type, match_var, multispan_sugg, remove_blocks, snippet,
-    snippet_block, snippet_with_applicability, span_lint_and_help, span_lint_and_note, span_lint_and_sugg,
-    span_lint_and_then, walk_ptrs_ty,
+    expr_block, get_arg_name, get_parent_expr, in_macro, indent_of, is_allowed, is_expn_of,
+    is_refutable, is_type_diagnostic_item, is_wild, match_qpath, match_type, match_var,
+    multispan_sugg, remove_blocks, snippet, snippet_block, snippet_with_applicability,
+    span_lint_and_help, span_lint_and_note, span_lint_and_sugg, span_lint_and_then, walk_ptrs_ty,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;
 use rustc_hir::def::CtorKind;
 use rustc_hir::{
-    Arm, BindingAnnotation, Block, BorrowKind, Expr, ExprKind, Local, MatchSource, Mutability, Node, Pat, PatKind,
-    QPath, RangeEnd,
+    Arm, BindingAnnotation, Block, BorrowKind, Expr, ExprKind, Local, MatchSource, Mutability,
+    Node, Pat, PatKind, QPath, RangeEnd,
 };
 use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::lint::in_external_macro;
@@ -547,11 +547,11 @@ fn check_single_match_opt_like(
                 return;
             }
             rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| s.print_qpath(path, false))
-        },
+        }
         PatKind::Binding(BindingAnnotation::Unannotated, .., ident, None) => ident.to_string(),
         PatKind::Path(ref path) => {
             rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| s.print_qpath(path, false))
-        },
+        }
         _ => return,
     };
 
@@ -607,7 +607,7 @@ fn check_match_bool(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_>], e
                                     !test,
                                     expr_block(cx, false_expr, None, "..", Some(expr.span))
                                 ))
-                            },
+                            }
                             (true, true) => None,
                         };
 
@@ -626,7 +626,11 @@ fn check_match_bool(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_>], e
     }
 }
 
-fn check_overlapping_arms<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ex: &'tcx Expr<'_>, arms: &'tcx [Arm<'_>]) {
+fn check_overlapping_arms<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    ex: &'tcx Expr<'_>,
+    arms: &'tcx [Arm<'_>],
+) {
     if arms.len() >= 2 && cx.tables.expr_ty(ex).is_integral() {
         let ranges = all_ranges(cx, arms, cx.tables.expr_ty(ex));
         let type_ranges = type_ranges(&ranges);
@@ -650,7 +654,9 @@ fn check_wild_err_arm(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_>])
     if is_type_diagnostic_item(cx, ex_ty, sym!(result_type)) {
         for arm in arms {
             if let PatKind::TupleStruct(ref path, ref inner, _) = arm.pat.kind {
-                let path_str = rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| s.print_qpath(path, false));
+                let path_str = rustc_hir_pretty::to_string(rustc_hir_pretty::NO_ANN, |s| {
+                    s.print_qpath(path, false)
+                });
                 if path_str == "Err" {
                     let mut matching_wild = inner.iter().any(is_wild);
                     let mut ident_bind_name = String::from("_");
@@ -761,7 +767,8 @@ fn check_wild_enum_match(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_
 
         if let ty::Adt(def, _) = ty.kind {
             if def.is_variant_list_non_exhaustive() {
-                message = "match on non-exhaustive enum doesn't explicitly match all known variants";
+                message =
+                    "match on non-exhaustive enum doesn't explicitly match all known variants";
                 suggestion.push(String::from("_"));
             }
         }
@@ -783,24 +790,29 @@ fn is_panic_block(block: &Block<'_>) -> bool {
     match (&block.expr, block.stmts.len(), block.stmts.first()) {
         (&Some(ref exp), 0, _) => {
             is_expn_of(exp.span, "panic").is_some() && is_expn_of(exp.span, "unreachable").is_none()
-        },
+        }
         (&None, 1, Some(stmt)) => {
-            is_expn_of(stmt.span, "panic").is_some() && is_expn_of(stmt.span, "unreachable").is_none()
-        },
+            is_expn_of(stmt.span, "panic").is_some()
+                && is_expn_of(stmt.span, "unreachable").is_none()
+        }
         _ => false,
     }
 }
 
-fn check_match_ref_pats(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_>], expr: &Expr<'_>) {
+fn check_match_ref_pats(
+    cx: &LateContext<'_, '_>,
+    ex: &Expr<'_>,
+    arms: &[Arm<'_>],
+    expr: &Expr<'_>,
+) {
     if has_only_ref_pats(arms) {
         let mut suggs = Vec::with_capacity(arms.len() + 1);
-        let (title, msg) = if let ExprKind::AddrOf(BorrowKind::Ref, Mutability::Not, ref inner) = ex.kind {
+        let (title, msg) = if let ExprKind::AddrOf(BorrowKind::Ref, Mutability::Not, ref inner) =
+            ex.kind
+        {
             let span = ex.span.source_callsite();
             suggs.push((span, Sugg::hir_with_macro_callsite(cx, inner, "..").to_string()));
-            (
-                "you don't need to add `&` to both the expression and the patterns",
-                "try",
-            )
+            ("you don't need to add `&` to both the expression and the patterns", "try")
         } else {
             let span = ex.span.source_callsite();
             suggs.push((span, Sugg::hir_with_macro_callsite(cx, ex, "..").deref().to_string()));
@@ -836,11 +848,7 @@ fn check_match_as_ref(cx: &LateContext<'_, '_>, ex: &Expr<'_>, arms: &[Arm<'_>],
             None
         };
         if let Some(rb) = arm_ref {
-            let suggestion = if rb == BindingAnnotation::Ref {
-                "as_ref"
-            } else {
-                "as_mut"
-            };
+            let suggestion = if rb == BindingAnnotation::Ref { "as_ref" } else { "as_mut" };
 
             let output_ty = cx.tables.expr_ty(expr);
             let input_ty = cx.tables.expr_ty(ex);
@@ -896,7 +904,12 @@ fn check_wild_in_or_pats(cx: &LateContext<'_, '_>, arms: &[Arm<'_>]) {
     }
 }
 
-fn check_match_single_binding<'a>(cx: &LateContext<'_, 'a>, ex: &Expr<'a>, arms: &[Arm<'_>], expr: &Expr<'_>) {
+fn check_match_single_binding<'a>(
+    cx: &LateContext<'_, 'a>,
+    ex: &Expr<'a>,
+    arms: &[Arm<'_>],
+    expr: &Expr<'_>,
+) {
     if in_macro(expr.span) || arms.len() != 1 || is_refutable(cx, arms[0].pat) {
         return;
     }
@@ -916,13 +929,13 @@ fn check_match_single_binding<'a>(cx: &LateContext<'_, 'a>, ex: &Expr<'a>, arms:
             if block.span.from_expansion() && cx.tables.expr_ty(&match_body).is_unit() {
                 snippet_body.push(';');
             }
-        },
+        }
         _ => {
             // expr_ty(body) == ()
             if cx.tables.expr_ty(&match_body).is_unit() {
                 snippet_body.push(';');
             }
-        },
+        }
     }
 
     let mut applicability = Applicability::MaybeIncorrect;
@@ -937,7 +950,12 @@ fn check_match_single_binding<'a>(cx: &LateContext<'_, 'a>, ex: &Expr<'a>, arms:
                         snippet_with_applicability(cx, bind_names, "..", &mut applicability),
                         snippet_with_applicability(cx, matched_vars, "..", &mut applicability),
                         " ".repeat(indent_of(cx, expr.span).unwrap_or(0)),
-                        snippet_with_applicability(cx, parent_let_node.pat.span, "..", &mut applicability),
+                        snippet_with_applicability(
+                            cx,
+                            parent_let_node.pat.span,
+                            "..",
+                            &mut applicability
+                        ),
                         snippet_body
                     ),
                 )
@@ -975,7 +993,7 @@ fn check_match_single_binding<'a>(cx: &LateContext<'_, 'a>, ex: &Expr<'a>, arms:
                 sugg,
                 applicability,
             );
-        },
+        }
         PatKind::Wild => {
             span_lint_and_sugg(
                 cx,
@@ -986,7 +1004,7 @@ fn check_match_single_binding<'a>(cx: &LateContext<'_, 'a>, ex: &Expr<'a>, arms:
                 snippet_body,
                 Applicability::MachineApplicable,
             );
-        },
+        }
         _ => (),
     }
 }
@@ -1012,10 +1030,7 @@ fn all_ranges<'a, 'tcx>(
 ) -> Vec<SpannedRange<Constant>> {
     arms.iter()
         .flat_map(|arm| {
-            if let Arm {
-                ref pat, guard: None, ..
-            } = *arm
-            {
+            if let Arm { ref pat, guard: None, .. } = *arm {
                 if let PatKind::Range(ref lhs, ref rhs, range_end) = pat.kind {
                     let lhs = match lhs {
                         Some(lhs) => constant(cx, cx.tables, lhs)?.0,
@@ -1029,10 +1044,7 @@ fn all_ranges<'a, 'tcx>(
                         RangeEnd::Included => Bound::Included(rhs),
                         RangeEnd::Excluded => Bound::Excluded(rhs),
                     };
-                    return Some(SpannedRange {
-                        span: pat.span,
-                        node: (lhs, rhs),
-                    });
+                    return Some(SpannedRange { span: pat.span, node: (lhs, rhs) });
                 }
 
                 if let PatKind::Lit(ref value) = pat.kind {
@@ -1063,18 +1075,15 @@ fn type_ranges(ranges: &[SpannedRange<Constant>]) -> TypedRanges {
     ranges
         .iter()
         .filter_map(|range| match range.node {
-            (Constant::Int(start), Bound::Included(Constant::Int(end))) => Some(SpannedRange {
-                span: range.span,
-                node: (start, Bound::Included(end)),
-            }),
-            (Constant::Int(start), Bound::Excluded(Constant::Int(end))) => Some(SpannedRange {
-                span: range.span,
-                node: (start, Bound::Excluded(end)),
-            }),
-            (Constant::Int(start), Bound::Unbounded) => Some(SpannedRange {
-                span: range.span,
-                node: (start, Bound::Unbounded),
-            }),
+            (Constant::Int(start), Bound::Included(Constant::Int(end))) => {
+                Some(SpannedRange { span: range.span, node: (start, Bound::Included(end)) })
+            }
+            (Constant::Int(start), Bound::Excluded(Constant::Int(end))) => {
+                Some(SpannedRange { span: range.span, node: (start, Bound::Excluded(end)) })
+            }
+            (Constant::Int(start), Bound::Unbounded) => {
+                Some(SpannedRange { span: range.span, node: (start, Bound::Unbounded) })
+            }
             _ => None,
         })
         .collect()
@@ -1165,7 +1174,8 @@ where
     impl<'a, T: Copy + Ord> Ord for Kind<'a, T> {
         fn cmp(&self, other: &Self) -> Ordering {
             match (self.value(), other.value()) {
-                (Bound::Included(a), Bound::Included(b)) | (Bound::Excluded(a), Bound::Excluded(b)) => a.cmp(&b),
+                (Bound::Included(a), Bound::Included(b))
+                | (Bound::Excluded(a), Bound::Excluded(b)) => a.cmp(&b),
                 // Range patterns cannot be unbounded (yet)
                 (Bound::Unbounded, _) | (_, Bound::Unbounded) => unimplemented!(),
                 (Bound::Included(a), Bound::Excluded(b)) => match a.cmp(&b) {
@@ -1195,7 +1205,7 @@ where
                 if ra.node != rb.node {
                     return Some((ra, rb));
                 }
-            },
+            }
             (&Kind::End(a, _), &Kind::Start(b, _)) if a != Bound::Included(b) => (),
             _ => return Some((a.range(), b.range())),
         }
@@ -1208,17 +1218,11 @@ where
 fn test_overlapping() {
     use rustc_span::source_map::DUMMY_SP;
 
-    let sp = |s, e| SpannedRange {
-        span: DUMMY_SP,
-        node: (s, e),
-    };
+    let sp = |s, e| SpannedRange { span: DUMMY_SP, node: (s, e) };
 
     assert_eq!(None, overlapping::<u8>(&[]));
     assert_eq!(None, overlapping(&[sp(1, Bound::Included(4))]));
-    assert_eq!(
-        None,
-        overlapping(&[sp(1, Bound::Included(4)), sp(5, Bound::Included(6))])
-    );
+    assert_eq!(None, overlapping(&[sp(1, Bound::Included(4)), sp(5, Bound::Included(6))]));
     assert_eq!(
         None,
         overlapping(&[

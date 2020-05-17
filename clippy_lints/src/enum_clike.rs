@@ -64,8 +64,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnportableVariant {
                                 if i32::try_from(val).is_ok() {
                                     continue;
                                 }
-                            },
-                            ty::Uint(UintTy::Usize) if val > u128::from(u32::max_value()) => {},
+                            }
+                            ty::Uint(UintTy::Usize) if val > u128::from(u32::max_value()) => {}
                             _ => continue,
                         }
                         span_lint(

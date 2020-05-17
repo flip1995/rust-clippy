@@ -9,14 +9,14 @@ fn match_with_wildcard() {
     match arr[idx] {
         0 => println!("0"),
         1 => println!("1"),
-        _ => {},
+        _ => {}
     }
 
     // Lint, may panic
     match arr[range] {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
-        _ => {},
+        _ => {}
     }
 }
 
@@ -29,14 +29,14 @@ fn match_without_wildcard() {
     match arr[idx] {
         0 => println!("0"),
         1 => println!("1"),
-        num => {},
+        num => {}
     }
 
     // Lint, may panic
     match arr[range] {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
-        [ref sub @ ..] => {},
+        [ref sub @ ..] => {}
     }
 }
 
@@ -69,14 +69,14 @@ fn match_vec_ref() {
     match arr[idx] {
         0 => println!("0"),
         1 => println!("1"),
-        _ => {},
+        _ => {}
     }
 
     // Lint, may panic
     match arr[range] {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
-        _ => {},
+        _ => {}
     }
 }
 
@@ -89,14 +89,14 @@ fn match_with_get() {
     match arr.get(idx) {
         Some(0) => println!("0"),
         Some(1) => println!("1"),
-        _ => {},
+        _ => {}
     }
 
     // Ok
     match arr.get(range) {
         Some(&[0, 1]) => println!("0 1"),
         Some(&[1, 2]) => println!("1 2"),
-        _ => {},
+        _ => {}
     }
 }
 
@@ -109,14 +109,14 @@ fn match_with_array() {
     match arr[idx] {
         0 => println!("0"),
         1 => println!("1"),
-        _ => {},
+        _ => {}
     }
 
     // Ok
     match arr[range] {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
-        _ => {},
+        _ => {}
     }
 }
 
@@ -129,7 +129,7 @@ fn match_with_endless_range() {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
         [0, 1, 2, 3] => println!("0, 1, 2, 3"),
-        _ => {},
+        _ => {}
     }
 
     // Ok
@@ -137,7 +137,7 @@ fn match_with_endless_range() {
         [0, 1] => println!("0 1"),
         [1, 2] => println!("1 2"),
         [0, 1, 2, 3] => println!("0, 1, 2, 3"),
-        _ => {},
+        _ => {}
     }
 }
 

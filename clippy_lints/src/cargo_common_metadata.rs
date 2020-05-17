@@ -65,7 +65,8 @@ impl LateLintPass<'_, '_> for CargoCommonMetadata {
             return;
         }
 
-        let metadata = if let Ok(metadata) = cargo_metadata::MetadataCommand::new().no_deps().exec() {
+        let metadata = if let Ok(metadata) = cargo_metadata::MetadataCommand::new().no_deps().exec()
+        {
             metadata
         } else {
             warning(cx, "could not read cargo metadata");

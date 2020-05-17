@@ -196,7 +196,7 @@ fn is_first_block_stmt_continue(block: &ast::Block, label: Option<&ast::Label>) 
             } else {
                 false
             }
-        },
+        }
         _ => false,
     })
 }
@@ -244,8 +244,8 @@ where
             if let ast::ExprKind::If(ref cond, ref if_block, Some(ref else_expr)) = e.kind {
                 func(e, cond, if_block, else_expr);
             }
-        },
-        _ => {},
+        }
+        _ => {}
     }
 }
 
@@ -309,7 +309,10 @@ fn emit_warning<'a>(cx: &EarlyContext<'_>, data: &'a LintData<'_>, header: &str,
     );
 }
 
-fn suggestion_snippet_for_continue_inside_if<'a>(cx: &EarlyContext<'_>, data: &'a LintData<'_>) -> String {
+fn suggestion_snippet_for_continue_inside_if<'a>(
+    cx: &EarlyContext<'_>,
+    data: &'a LintData<'_>,
+) -> String {
     let cond_code = snippet(cx, data.if_cond.span, "..");
 
     let continue_code = snippet_block(cx, data.if_block.span, "..", Some(data.if_expr.span));
@@ -326,11 +329,15 @@ fn suggestion_snippet_for_continue_inside_if<'a>(cx: &EarlyContext<'_>, data: &'
     )
 }
 
-fn suggestion_snippet_for_continue_inside_else<'a>(cx: &EarlyContext<'_>, data: &'a LintData<'_>) -> String {
+fn suggestion_snippet_for_continue_inside_else<'a>(
+    cx: &EarlyContext<'_>,
+    data: &'a LintData<'_>,
+) -> String {
     let cond_code = snippet(cx, data.if_cond.span, "..");
 
     // Region B
-    let block_code = erode_from_back(&snippet_block(cx, data.if_block.span, "..", Some(data.if_expr.span)));
+    let block_code =
+        erode_from_back(&snippet_block(cx, data.if_block.span, "..", Some(data.if_expr.span)));
 
     // Region C
     // These is the code in the loop block that follows the if/else construction
@@ -416,11 +423,7 @@ fn erode_from_back(s: &str) -> String {
             break;
         }
     }
-    if ret.is_empty() {
-        s.to_string()
-    } else {
-        ret
-    }
+    if ret.is_empty() { s.to_string() } else { ret }
 }
 
 fn span_of_first_expr_in_block(block: &ast::Block) -> Option<Span> {

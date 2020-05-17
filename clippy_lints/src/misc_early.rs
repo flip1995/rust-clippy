@@ -1,11 +1,11 @@
 use crate::utils::{
-    constants, snippet_opt, snippet_with_applicability, span_lint, span_lint_and_help, span_lint_and_sugg,
-    span_lint_and_then,
+    constants, snippet_opt, snippet_with_applicability, span_lint, span_lint_and_help,
+    span_lint_and_sugg, span_lint_and_then,
 };
 use if_chain::if_chain;
 use rustc_ast::ast::{
-    BindingMode, Block, Expr, ExprKind, GenericParamKind, Generics, Lit, LitFloatType, LitIntType, LitKind, Mutability,
-    NodeId, Pat, PatKind, StmtKind, UnOp,
+    BindingMode, Block, Expr, ExprKind, GenericParamKind, Generics, Lit, LitFloatType, LitIntType,
+    LitKind, Mutability, NodeId, Pat, PatKind, StmtKind, UnOp,
 };
 use rustc_ast::visit::{walk_expr, FnKind, Visitor};
 use rustc_data_structures::fx::FxHashMap;
@@ -312,12 +312,8 @@ impl EarlyLintPass for MiscEarlyLints {
     fn check_pat(&mut self, cx: &EarlyContext<'_>, pat: &Pat) {
         if let PatKind::Struct(ref npat, ref pfields, _) = pat.kind {
             let mut wilds = 0;
-            let type_name = npat
-                .segments
-                .last()
-                .expect("A path must have at least one segment")
-                .ident
-                .name;
+            let type_name =
+                npat.segments.last().expect("A path must have at least one segment").ident.name;
 
             for field in pfields {
                 if let PatKind::Wild = field.pat.kind {
@@ -351,12 +347,14 @@ impl EarlyLintPass for MiscEarlyLints {
 
                             for field in pfields {
                                 match field.pat.kind {
-                                    PatKind::Wild => {},
+                                    PatKind::Wild => {}
                                     _ => {
-                                        if let Ok(n) = cx.sess().source_map().span_to_snippet(field.span) {
+                                        if let Ok(n) =
+                                            cx.sess().source_map().span_to_snippet(field.span)
+                                        {
                                             normal.push(n);
                                         }
-                                    },
+                                    }
                                 }
                             }
 
@@ -367,7 +365,11 @@ impl EarlyLintPass for MiscEarlyLints {
                                 "You matched a field with a wildcard pattern. Consider using `..` \
                                  instead",
                                 None,
-                                &format!("Try with `{} {{ {}, .. }}`", type_name, normal[..].join(", ")),
+                                &format!(
+                                    "Try with `{} {{ {}, .. }}`",
+                                    type_name,
+                                    normal[..].join(", ")
+                                ),
                             );
                         }
                     }
@@ -447,16 +449,23 @@ impl EarlyLintPass for MiscEarlyLints {
                                 |diag| {
                                     if decl.inputs.is_empty() {
                                         let mut app = Applicability::MachineApplicable;
-                                        let hint =
-                                            snippet_with_applicability(cx, block.span, "..", &mut app).into_owned();
-                                        diag.span_suggestion(expr.span, "Try doing something like: ", hint, app);
+                                        let hint = snippet_with_applicability(
+                                            cx, block.span, "..", &mut app,
+                                        )
+                                        .into_owned();
+                                        diag.span_suggestion(
+                                            expr.span,
+                                            "Try doing something like: ",
+                                            hint,
+                                            app,
+                                        );
                                     }
                                 },
                             );
                         }
                     }
                 }
-            },
+            }
             ExprKind::Unary(UnOp::Neg, ref inner) => {
                 if let ExprKind::Unary(UnOp::Neg, _) = inner.kind {
                     span_lint(
@@ -466,7 +475,7 @@ impl EarlyLintPass for MiscEarlyLints {
                         "`--x` could be misinterpreted as pre-decrement by C programmers, is usually a no-op",
                     );
                 }
-            },
+            }
             ExprKind::Lit(ref lit) => Self::check_lit(cx, lit),
             _ => (),
         }
@@ -517,7 +526,8 @@ impl MiscEarlyLints {
                 LitIntType::Unsuffixed => "",
             };
 
-            let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1) {
+            let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1)
+            {
                 val
             } else {
                 return; // It's useless so shouldn't lint.
@@ -545,7 +555,7 @@ impl MiscEarlyLints {
                     match ch {
                         b'a'..=b'f' => seen.0 = true,
                         b'A'..=b'F' => seen.1 = true,
-                        _ => {},
+                        _ => {}
                     }
                     if seen.0 && seen.1 {
                         span_lint(
@@ -583,7 +593,8 @@ impl MiscEarlyLints {
             }
         } else if let LitKind::Float(_, LitFloatType::Suffixed(float_ty)) = lit.kind {
             let suffix = float_ty.name_str();
-            let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1) {
+            let maybe_last_sep_idx = if let Some(val) = lit_snip.len().checked_sub(suffix.len() + 1)
+            {
                 val
             } else {
                 return; // It's useless so shouldn't lint.
@@ -623,20 +634,12 @@ fn check_unneeded_wildcard_pattern(cx: &EarlyContext<'_>, pat: &Pat) {
 
         #[allow(clippy::trivially_copy_pass_by_ref)]
         fn is_wild<P: std::ops::Deref<Target = Pat>>(pat: &&P) -> bool {
-            if let PatKind::Wild = pat.kind {
-                true
-            } else {
-                false
-            }
+            if let PatKind::Wild = pat.kind { true } else { false }
         }
 
         if let Some(rest_index) = patterns.iter().position(|pat| pat.is_rest()) {
-            if let Some((left_index, left_pat)) = patterns[..rest_index]
-                .iter()
-                .rev()
-                .take_while(is_wild)
-                .enumerate()
-                .last()
+            if let Some((left_index, left_pat)) =
+                patterns[..rest_index].iter().rev().take_while(is_wild).enumerate().last()
             {
                 span_lint(cx, left_pat.span.until(patterns[rest_index].span), left_index == 0);
             }

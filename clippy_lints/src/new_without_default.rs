@@ -1,6 +1,8 @@
 use crate::utils::paths;
 use crate::utils::sugg::DiagnosticBuilderExt;
-use crate::utils::{get_trait_def_id, implements_trait, return_ty, same_tys, span_lint_hir_and_then};
+use crate::utils::{
+    get_trait_def_id, implements_trait, return_ty, same_tys, span_lint_hir_and_then,
+};
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
@@ -95,10 +97,7 @@ impl_lint_pass!(NewWithoutDefault => [NEW_WITHOUT_DEFAULT]);
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NewWithoutDefault {
     #[allow(clippy::too_many_lines)]
     fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item<'_>) {
-        if let hir::ItemKind::Impl {
-            of_trait: None, items, ..
-        } = item.kind
-        {
+        if let hir::ItemKind::Impl { of_trait: None, items, .. } = item.kind {
             for assoc_item in items {
                 if let hir::AssocItemKind::Fn { has_self: false } = assoc_item.kind {
                     let impl_item = cx.tcx.hir().impl_item(assoc_item.id);
@@ -125,8 +124,12 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NewWithoutDefault {
                             // impl of `Default`
                             return;
                         }
-                        if sig.decl.inputs.is_empty() && name == sym!(new) && cx.access_levels.is_reachable(id) {
-                            let self_did = cx.tcx.hir().local_def_id(cx.tcx.hir().get_parent_item(id));
+                        if sig.decl.inputs.is_empty()
+                            && name == sym!(new)
+                            && cx.access_levels.is_reachable(id)
+                        {
+                            let self_did =
+                                cx.tcx.hir().local_def_id(cx.tcx.hir().get_parent_item(id));
                             let self_ty = cx.tcx.type_of(self_did);
                             if_chain! {
                                 if same_tys(cx, self_ty, return_ty(cx, id));
@@ -218,7 +221,11 @@ fn create_new_without_default_suggest_msg(ty: Ty<'_>) -> String {
 }}", ty)
 }
 
-fn can_derive_default<'t, 'c>(ty: Ty<'t>, cx: &LateContext<'c, 't>, default_trait_id: DefId) -> Option<Span> {
+fn can_derive_default<'t, 'c>(
+    ty: Ty<'t>,
+    cx: &LateContext<'c, 't>,
+    default_trait_id: DefId,
+) -> Option<Span> {
     match ty.kind {
         ty::Adt(adt_def, substs) if adt_def.is_struct() => {
             for field in adt_def.all_fields() {
@@ -228,7 +235,7 @@ fn can_derive_default<'t, 'c>(ty: Ty<'t>, cx: &LateContext<'c, 't>, default_trai
                 }
             }
             Some(cx.tcx.def_span(adt_def.did))
-        },
+        }
         _ => None,
     }
 }

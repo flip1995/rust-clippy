@@ -8,7 +8,7 @@ fn single_match() {
     match x {
         Some(y) => {
             println!("{:?}", y);
-        },
+        }
         _ => (),
     };
 
@@ -24,7 +24,7 @@ fn single_match() {
     let z = (1u8, 1u8);
     match z {
         (2..=3, 7..=9) => dummy(),
-        _ => {},
+        _ => {}
     };
 
     // Not linted (pattern guards used)

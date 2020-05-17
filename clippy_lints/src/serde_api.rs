@@ -22,12 +22,7 @@ declare_lint_pass!(SerdeAPI => [SERDE_API_MISUSE]);
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for SerdeAPI {
     fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx Item<'_>) {
-        if let ItemKind::Impl {
-            of_trait: Some(ref trait_ref),
-            items,
-            ..
-        } = item.kind
-        {
+        if let ItemKind::Impl { of_trait: Some(ref trait_ref), items, .. } = item.kind {
             let did = trait_ref.path.res.def_id();
             if let Some(visit_did) = get_trait_def_id(cx, &paths::SERDE_DE_VISITOR) {
                 if did == visit_did {
@@ -37,7 +32,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for SerdeAPI {
                         match &*item.ident.as_str() {
                             "visit_str" => seen_str = Some(item.span),
                             "visit_string" => seen_string = Some(item.span),
-                            _ => {},
+                            _ => {}
                         }
                     }
                     if let Some(span) = seen_string {

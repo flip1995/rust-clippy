@@ -116,7 +116,7 @@ impl EarlyLintPass for Formatting {
                 (&StmtKind::Expr(ref first), &StmtKind::Expr(ref second))
                 | (&StmtKind::Expr(ref first), &StmtKind::Semi(ref second)) => {
                     check_missing_else(cx, first, second);
-                },
+                }
                 _ => (),
             }
         }
@@ -150,7 +150,10 @@ fn check_assign(cx: &EarlyContext<'_>, expr: &Expr) {
                                 op = op
                             ),
                             None,
-                            &format!("to remove this lint, use either `{op}=` or `= {op}`", op = op),
+                            &format!(
+                                "to remove this lint, use either `{op}=` or `= {op}`",
+                                op = op
+                            ),
                         );
                     }
                 }
@@ -309,18 +312,10 @@ fn check_missing_else(cx: &EarlyContext<'_>, first: &Expr, second: &Expr) {
 }
 
 fn is_block(expr: &Expr) -> bool {
-    if let ExprKind::Block(..) = expr.kind {
-        true
-    } else {
-        false
-    }
+    if let ExprKind::Block(..) = expr.kind { true } else { false }
 }
 
 /// Check if the expression is an `if` or `if let`
 fn is_if(expr: &Expr) -> bool {
-    if let ExprKind::If(..) = expr.kind {
-        true
-    } else {
-        false
-    }
+    if let ExprKind::If(..) = expr.kind { true } else { false }
 }

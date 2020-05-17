@@ -1,6 +1,8 @@
 //! lint on using `x.get(x.len() - 1)` instead of `x.last()`
 
-use crate::utils::{is_type_diagnostic_item, snippet_with_applicability, span_lint_and_sugg, SpanlessEq};
+use crate::utils::{
+    is_type_diagnostic_item, snippet_with_applicability, span_lint_and_sugg, SpanlessEq,
+};
 use if_chain::if_chain;
 use rustc_ast::ast::LitKind;
 use rustc_errors::Applicability;

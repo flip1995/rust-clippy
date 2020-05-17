@@ -25,7 +25,7 @@ fn main() {
         ref mut x @ _ => {
             x.push(4);
             println!("vec: {:?}", x);
-        },
+        }
         ref y if y == &vec![0] => (),
     }
 

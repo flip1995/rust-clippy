@@ -1,4 +1,6 @@
-use crate::utils::{get_parent_expr, higher, if_sequence, same_tys, snippet, span_lint_and_note, span_lint_and_then};
+use crate::utils::{
+    get_parent_expr, higher, if_sequence, same_tys, snippet, span_lint_and_note, span_lint_and_then,
+};
 use crate::utils::{SpanlessEq, SpanlessHash};
 use rustc_data_structures::fx::FxHashMap;
 use rustc_hir::{Arm, Block, Expr, ExprKind, MatchSource, Pat, PatKind};
@@ -304,7 +306,10 @@ fn lint_match_arms<'tcx>(cx: &LateContext<'_, 'tcx>, expr: &Expr<'_>) {
                             ),
                         );
                     } else {
-                        diag.span_help(i.pat.span, &format!("consider refactoring into `{} | {}`", lhs, rhs));
+                        diag.span_help(
+                            i.pat.span,
+                            &format!("consider refactoring into `{} | {}`", lhs, rhs),
+                        );
                     }
                 },
             );
@@ -314,14 +319,18 @@ fn lint_match_arms<'tcx>(cx: &LateContext<'_, 'tcx>, expr: &Expr<'_>) {
 
 /// Returns the list of bindings in a pattern.
 fn bindings<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, pat: &Pat<'_>) -> FxHashMap<Symbol, Ty<'tcx>> {
-    fn bindings_impl<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, pat: &Pat<'_>, map: &mut FxHashMap<Symbol, Ty<'tcx>>) {
+    fn bindings_impl<'a, 'tcx>(
+        cx: &LateContext<'a, 'tcx>,
+        pat: &Pat<'_>,
+        map: &mut FxHashMap<Symbol, Ty<'tcx>>,
+    ) {
         match pat.kind {
             PatKind::Box(ref pat) | PatKind::Ref(ref pat, _) => bindings_impl(cx, pat, map),
             PatKind::TupleStruct(_, pats, _) => {
                 for pat in pats {
                     bindings_impl(cx, pat, map);
                 }
-            },
+            }
             PatKind::Binding(.., ident, ref as_pat) => {
                 if let Entry::Vacant(v) = map.entry(ident.name) {
                     v.insert(cx.tables.pat_ty(pat));
@@ -329,17 +338,17 @@ fn bindings<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, pat: &Pat<'_>) -> FxHashMap<Sy
                 if let Some(ref as_pat) = *as_pat {
                     bindings_impl(cx, as_pat, map);
                 }
-            },
+            }
             PatKind::Or(fields) | PatKind::Tuple(fields, _) => {
                 for pat in fields {
                     bindings_impl(cx, pat, map);
                 }
-            },
+            }
             PatKind::Struct(_, fields, _) => {
                 for pat in fields {
                     bindings_impl(cx, &pat.pat, map);
                 }
-            },
+            }
             PatKind::Slice(lhs, ref mid, rhs) => {
                 for pat in lhs {
                     bindings_impl(cx, pat, map);
@@ -350,7 +359,7 @@ fn bindings<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, pat: &Pat<'_>) -> FxHashMap<Sy
                 for pat in rhs {
                     bindings_impl(cx, pat, map);
                 }
-            },
+            }
             PatKind::Lit(..) | PatKind::Range(..) | PatKind::Wild | PatKind::Path(..) => (),
         }
     }
@@ -376,11 +385,7 @@ fn search_common_cases<'a, T, Eq>(exprs: &'a [T], eq: &Eq) -> Option<(&'a T, &'a
 where
     Eq: Fn(&T, &T) -> bool,
 {
-    if exprs.len() == 2 && eq(&exprs[0], &exprs[1]) {
-        Some((&exprs[0], &exprs[1]))
-    } else {
-        None
-    }
+    if exprs.len() == 2 && eq(&exprs[0], &exprs[1]) { Some((&exprs[0], &exprs[1])) } else { None }
 }
 
 fn search_same<T, Hash, Eq>(exprs: &[T], hash: Hash, eq: Eq) -> Vec<(&T, &T)>
@@ -406,10 +411,10 @@ where
                     }
                 }
                 o.get_mut().push(expr);
-            },
+            }
             Entry::Vacant(v) => {
                 v.insert(vec![expr]);
-            },
+            }
         }
     }
 

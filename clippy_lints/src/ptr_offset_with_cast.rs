@@ -75,7 +75,10 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for PtrOffsetWithCast {
 }
 
 // If the given expression is a cast from a usize, return the lhs of the cast
-fn expr_as_cast_from_usize<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'tcx>) -> Option<&'tcx Expr<'tcx>> {
+fn expr_as_cast_from_usize<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'tcx>,
+) -> Option<&'tcx Expr<'tcx>> {
     if let ExprKind::Cast(ref cast_lhs_expr, _) = expr.kind {
         if is_expr_ty_usize(cx, &cast_lhs_expr) {
             return Some(cast_lhs_expr);

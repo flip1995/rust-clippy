@@ -60,11 +60,8 @@ declare_clippy_lint! {
 
 declare_lint_pass!(LetUnderscore => [LET_UNDERSCORE_MUST_USE, LET_UNDERSCORE_LOCK]);
 
-const SYNC_GUARD_PATHS: [&[&str]; 3] = [
-    &paths::MUTEX_GUARD,
-    &paths::RWLOCK_READ_GUARD,
-    &paths::RWLOCK_WRITE_GUARD,
-];
+const SYNC_GUARD_PATHS: [&[&str]; 3] =
+    [&paths::MUTEX_GUARD, &paths::RWLOCK_READ_GUARD, &paths::RWLOCK_WRITE_GUARD];
 
 impl<'a, 'tcx> LateLintPass<'a, 'tcx> for LetUnderscore {
     fn check_local(&mut self, cx: &LateContext<'_, '_>, local: &Local<'_>) {

@@ -14,7 +14,7 @@ fn unwrap_addr() -> Option<&'static ExprNode> {
         _ => {
             let x = 5;
             None
-        },
+        }
     }
 }
 
@@ -25,7 +25,7 @@ macro_rules! unwrap_addr {
             _ => {
                 let x = 5;
                 None
-            },
+            }
         }
     };
 }

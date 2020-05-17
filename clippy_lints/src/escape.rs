@@ -77,7 +77,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for BoxedLocal {
 
         let fn_def_id = cx.tcx.hir().local_def_id(hir_id);
         cx.tcx.infer_ctxt().enter(|infcx| {
-            ExprUseVisitor::new(&mut v, &infcx, fn_def_id, cx.param_env, cx.tables).consume_body(body);
+            ExprUseVisitor::new(&mut v, &infcx, fn_def_id, cx.param_env, cx.tables)
+                .consume_body(body);
         });
 
         for node in v.set {
@@ -156,7 +157,8 @@ impl<'a, 'tcx> EscapeDelegate<'a, 'tcx> {
     fn is_large_box(&self, ty: Ty<'tcx>) -> bool {
         // Large types need to be boxed to avoid stack overflows.
         if ty.is_box() {
-            self.cx.layout_of(ty.boxed_ty()).map_or(0, |l| l.size.bytes()) > self.too_large_for_stack
+            self.cx.layout_of(ty.boxed_ty()).map_or(0, |l| l.size.bytes())
+                > self.too_large_for_stack
         } else {
             false
         }

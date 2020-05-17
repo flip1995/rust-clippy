@@ -1,7 +1,7 @@
 use super::{contains_return, BIND_INSTEAD_OF_MAP};
 use crate::utils::{
-    in_macro, match_qpath, match_type, method_calls, multispan_sugg_with_applicability, paths, remove_blocks, snippet,
-    snippet_with_macro_callsite, span_lint_and_sugg, span_lint_and_then,
+    in_macro, match_qpath, match_type, method_calls, multispan_sugg_with_applicability, paths,
+    remove_blocks, snippet, snippet_with_macro_callsite, span_lint_and_sugg, span_lint_and_then,
 };
 use if_chain::if_chain;
 use rustc_errors::Applicability;
@@ -140,18 +140,28 @@ pub(crate) trait BindInsteadOfMap {
         });
 
         if can_sugg {
-            span_lint_and_then(cx, BIND_INSTEAD_OF_MAP, expr.span, Self::lint_msg().as_ref(), |diag| {
-                multispan_sugg_with_applicability(
-                    diag,
-                    "try this",
-                    Applicability::MachineApplicable,
-                    std::iter::once((*method_calls(expr, 1).2.get(0).unwrap(), Self::GOOD_METHOD_NAME.into())).chain(
-                        suggs
-                            .into_iter()
-                            .map(|(span1, span2)| (span1, snippet(cx, span2, "_").into())),
-                    ),
-                )
-            });
+            span_lint_and_then(
+                cx,
+                BIND_INSTEAD_OF_MAP,
+                expr.span,
+                Self::lint_msg().as_ref(),
+                |diag| {
+                    multispan_sugg_with_applicability(
+                        diag,
+                        "try this",
+                        Applicability::MachineApplicable,
+                        std::iter::once((
+                            *method_calls(expr, 1).2.get(0).unwrap(),
+                            Self::GOOD_METHOD_NAME.into(),
+                        ))
+                        .chain(
+                            suggs
+                                .into_iter()
+                                .map(|(span1, span2)| (span1, snippet(cx, span2, "_").into())),
+                        ),
+                    )
+                },
+            );
         }
     }
 
@@ -166,10 +176,11 @@ pub(crate) trait BindInsteadOfMap {
                 let closure_body = cx.tcx.hir().body(body_id);
                 let closure_expr = remove_blocks(&closure_body.value);
 
-                if !Self::lint_closure_autofixable(cx, expr, args, closure_expr, closure_args_span) {
+                if !Self::lint_closure_autofixable(cx, expr, args, closure_expr, closure_args_span)
+                {
                     Self::lint_closure(cx, expr, closure_expr);
                 }
-            },
+            }
             // `_.and_then(Some)` case, which is no-op.
             hir::ExprKind::Path(ref qpath) if match_qpath(qpath, Self::BAD_VARIANT_QPATH) => {
                 span_lint_and_sugg(
@@ -181,8 +192,8 @@ pub(crate) trait BindInsteadOfMap {
                     snippet(cx, args[0].span, "..").into(),
                     Applicability::MachineApplicable,
                 );
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }
@@ -216,7 +227,11 @@ fn contains_try(expr: &hir::Expr<'_>) -> bool {
     visitor.found
 }
 
-fn find_all_ret_expressions<'hir, F>(_cx: &LateContext<'_, '_>, expr: &'hir hir::Expr<'hir>, callback: F) -> bool
+fn find_all_ret_expressions<'hir, F>(
+    _cx: &LateContext<'_, '_>,
+    expr: &'hir hir::Expr<'hir>,
+    callback: F,
+) -> bool
 where
     F: FnMut(&'hir hir::Expr<'hir>) -> bool,
 {
@@ -234,10 +249,7 @@ where
     impl<F> RetFinder<F> {
         fn inside_stmt(&mut self, in_stmt: bool) -> WithStmtGuarg<'_, F> {
             let prev_in_stmt = std::mem::replace(&mut self.in_stmt, in_stmt);
-            WithStmtGuarg {
-                val: self,
-                prev_in_stmt,
-            }
+            WithStmtGuarg { val: self, prev_in_stmt }
         }
     }
 
@@ -288,7 +300,7 @@ where
                         for arm in arms {
                             self.visit_expr(arm.body);
                         }
-                    },
+                    }
                     hir::ExprKind::Block(..) => intravisit::walk_expr(self, expr),
                     hir::ExprKind::Ret(Some(expr)) => self.visit_expr(expr),
                     _ => self.failed |= !(self.cb)(expr),
@@ -298,11 +310,7 @@ where
     }
 
     !contains_try(expr) && {
-        let mut ret_finder = RetFinder {
-            in_stmt: false,
-            failed: false,
-            cb: callback,
-        };
+        let mut ret_finder = RetFinder { in_stmt: false, failed: false, cb: callback };
         ret_finder.visit_expr(expr);
         !ret_finder.failed
     }

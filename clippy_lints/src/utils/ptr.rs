@@ -28,19 +28,9 @@ fn extract_clone_suggestions<'a, 'tcx>(
     replace: &[(&'static str, &'static str)],
     body: &'tcx Body<'_>,
 ) -> Option<Vec<(Span, Cow<'static, str>)>> {
-    let mut visitor = PtrCloneVisitor {
-        cx,
-        name,
-        replace,
-        spans: vec![],
-        abort: false,
-    };
+    let mut visitor = PtrCloneVisitor { cx, name, replace, spans: vec![], abort: false };
     visitor.visit_body(body);
-    if visitor.abort {
-        None
-    } else {
-        Some(visitor.spans)
-    }
+    if visitor.abort { None } else { Some(visitor.spans) }
 }
 
 struct PtrCloneVisitor<'a, 'tcx> {
@@ -66,8 +56,7 @@ impl<'a, 'tcx> Visitor<'tcx> for PtrCloneVisitor<'a, 'tcx> {
                 }
                 for &(fn_name, suffix) in self.replace {
                     if seg.ident.name.as_str() == fn_name {
-                        self.spans
-                            .push((expr.span, snippet(self.cx, args[0].span, "_") + suffix));
+                        self.spans.push((expr.span, snippet(self.cx, args[0].span, "_") + suffix));
                         return;
                     }
                 }

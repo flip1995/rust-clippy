@@ -127,7 +127,9 @@ fn bloo() {
         13 => println!("greetings earthling"),
         14 => println!("take us to you leader"),
         15 | 17 | 19 | 21 | 23 | 25 | 27 | 29 | 31 | 33 => println!("take us to you leader"),
-        35 | 37 | 39 | 41 | 43 | 45 | 47 | 49 | 51 | 53 => println!("there is no undefined behavior"),
+        35 | 37 | 39 | 41 | 43 | 45 | 47 | 49 | 51 | 53 => {
+            println!("there is no undefined behavior")
+        }
         55 | 57 | 59 | 61 | 63 | 65 | 67 | 69 | 71 | 73 => println!("I know borrow-fu"),
         _ => println!("bye"),
     }
@@ -279,23 +281,23 @@ pub fn read_file(input_path: &str) -> String {
         Ok(f) => f,
         Err(err) => {
             panic!("Can't open {}: {}", input_path, err);
-        },
+        }
     };
 
     let mut bytes = Vec::new();
 
     match file.read_to_end(&mut bytes) {
-        Ok(..) => {},
+        Ok(..) => {}
         Err(_) => {
             panic!("Can't read {}", input_path);
-        },
+        }
     };
 
     match String::from_utf8(bytes) {
         Ok(contents) => contents,
         Err(_) => {
             panic!("{} is not UTF-8 encoded", input_path);
-        },
+        }
     }
 }
 

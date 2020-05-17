@@ -36,7 +36,11 @@ struct OperandInfo {
     is_integral: bool,
 }
 
-fn analyze_operand(operand: &Expr<'_>, cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> Option<OperandInfo> {
+fn analyze_operand(
+    operand: &Expr<'_>,
+    cx: &LateContext<'_, '_>,
+    expr: &Expr<'_>,
+) -> Option<OperandInfo> {
     match constant(cx, cx.tables, operand) {
         Some((Constant::Int(v), _)) => match cx.tables.expr_ty(expr).kind {
             ty::Int(ity) => {
@@ -46,23 +50,23 @@ fn analyze_operand(operand: &Expr<'_>, cx: &LateContext<'_, '_>, expr: &Expr<'_>
                     is_negative: value < 0,
                     is_integral: true,
                 });
-            },
+            }
             ty::Uint(_) => {
                 return Some(OperandInfo {
                     string_representation: None,
                     is_negative: false,
                     is_integral: true,
                 });
-            },
-            _ => {},
+            }
+            _ => {}
         },
         Some((Constant::F32(f), _)) => {
             return Some(floating_point_operand_info(&f));
-        },
+        }
         Some((Constant::F64(f), _)) => {
             return Some(floating_point_operand_info(&f));
-        },
-        _ => {},
+        }
+        _ => {}
     }
     None
 }
@@ -105,7 +109,11 @@ fn check_const_operands<'a, 'tcx>(
     }
 }
 
-fn check_non_const_operands<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, expr: &'tcx Expr<'_>, operand: &Expr<'_>) {
+fn check_non_const_operands<'a, 'tcx>(
+    cx: &LateContext<'a, 'tcx>,
+    expr: &'tcx Expr<'_>,
+    operand: &Expr<'_>,
+) {
     let operand_type = cx.tables.expr_ty(operand);
     if might_have_negative_value(operand_type) {
         span_lint_and_then(
@@ -141,8 +149,8 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for ModuloArithmetic {
                         }
                     }
                 };
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 }

@@ -16,10 +16,7 @@ fn main() {
 
     // Issue #3704
     unsafe {
-        let _: Vec<u8> = std::ffi::CStr::from_ptr(std::ptr::null())
-            .to_bytes()
-            .iter()
-            .cloned()
-            .collect();
+        let _: Vec<u8> =
+            std::ffi::CStr::from_ptr(std::ptr::null()).to_bytes().iter().cloned().collect();
     }
 }

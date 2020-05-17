@@ -5,7 +5,9 @@
 use std::ptr;
 
 use rustc_hir::def::{DefKind, Res};
-use rustc_hir::{Expr, ExprKind, ImplItem, ImplItemKind, Item, ItemKind, Node, TraitItem, TraitItemKind, UnOp};
+use rustc_hir::{
+    Expr, ExprKind, ImplItem, ImplItemKind, Item, ItemKind, Node, TraitItem, TraitItemKind, UnOp,
+};
 use rustc_lint::{LateContext, LateLintPass, Lint};
 use rustc_middle::ty::adjustment::Adjust;
 use rustc_middle::ty::{Ty, TypeFlags};
@@ -126,15 +128,17 @@ fn verify_ty_bound<'a, 'tcx>(cx: &LateContext<'a, 'tcx>, ty: Ty<'tcx>, source: S
             Source::Item { .. } => {
                 let const_kw_span = span.from_inner(InnerSpan::new(0, 5));
                 diag.span_label(const_kw_span, "make this a static item (maybe with lazy_static)");
-            },
+            }
             Source::Assoc { ty: ty_span, .. } => {
                 if ty.flags.intersects(TypeFlags::HAS_FREE_LOCAL_NAMES) {
                     diag.span_label(ty_span, &format!("consider requiring `{}` to be `Copy`", ty));
                 }
-            },
+            }
             Source::Expr { .. } => {
-                diag.help("assign this const to a local or static variable, and use the variable here");
-            },
+                diag.help(
+                    "assign this const to a local or static variable, and use the variable here",
+                );
+            }
         }
     });
 }
@@ -152,14 +156,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NonCopyConst {
     fn check_trait_item(&mut self, cx: &LateContext<'a, 'tcx>, trait_item: &'tcx TraitItem<'_>) {
         if let TraitItemKind::Const(hir_ty, ..) = &trait_item.kind {
             let ty = hir_ty_to_ty(cx.tcx, hir_ty);
-            verify_ty_bound(
-                cx,
-                ty,
-                Source::Assoc {
-                    ty: hir_ty.span,
-                    item: trait_item.span,
-                },
-            );
+            verify_ty_bound(cx, ty, Source::Assoc { ty: hir_ty.span, item: trait_item.span });
         }
     }
 
@@ -170,14 +167,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NonCopyConst {
             // Ensure the impl is an inherent impl.
             if let ItemKind::Impl { of_trait: None, .. } = item.kind {
                 let ty = hir_ty_to_ty(cx.tcx, hir_ty);
-                verify_ty_bound(
-                    cx,
-                    ty,
-                    Source::Assoc {
-                        ty: hir_ty.span,
-                        item: impl_item.span,
-                    },
-                );
+                verify_ty_bound(cx, ty, Source::Assoc { ty: hir_ty.span, item: impl_item.span });
             }
         }
     }
@@ -191,7 +181,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NonCopyConst {
 
             // Make sure it is a const item.
             match qpath_res(cx, qpath, expr.hir_id) {
-                Res::Def(DefKind::Const | DefKind::AssocConst, _) => {},
+                Res::Def(DefKind::Const | DefKind::AssocConst, _) => {}
                 _ => return,
             };
 
@@ -209,25 +199,25 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NonCopyConst {
                         ExprKind::AddrOf(..) => {
                             // `&e` => `e` must be referenced.
                             needs_check_adjustment = false;
-                        },
+                        }
                         ExprKind::Field(..) => {
                             dereferenced_expr = parent_expr;
                             needs_check_adjustment = true;
-                        },
+                        }
                         ExprKind::Index(e, _) if ptr::eq(&**e, cur_expr) => {
                             // `e[i]` => desugared to `*Index::index(&e, i)`,
                             // meaning `e` must be referenced.
                             // no need to go further up since a method call is involved now.
                             needs_check_adjustment = false;
                             break;
-                        },
+                        }
                         ExprKind::Unary(UnOp::UnDeref, _) => {
                             // `*e` => desugared to `*Deref::deref(&e)`,
                             // meaning `e` must be referenced.
                             // no need to go further up since a method call is involved now.
                             needs_check_adjustment = false;
                             break;
-                        },
+                        }
                         _ => break,
                     }
                     cur_expr = parent_expr;

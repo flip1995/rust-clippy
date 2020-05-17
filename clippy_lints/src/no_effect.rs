@@ -51,7 +51,7 @@ fn has_no_effect(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
         ExprKind::Path(..) => !has_drop(cx, cx.tables.expr_ty(expr)),
         ExprKind::Index(ref a, ref b) | ExprKind::Binary(_, ref a, ref b) => {
             has_no_effect(cx, a) && has_no_effect(cx, b)
-        },
+        }
         ExprKind::Array(ref v) | ExprKind::Tup(ref v) => v.iter().all(|val| has_no_effect(cx, val)),
         ExprKind::Repeat(ref inner, _)
         | ExprKind::Cast(ref inner, _)
@@ -64,23 +64,25 @@ fn has_no_effect(cx: &LateContext<'_, '_>, expr: &Expr<'_>) -> bool {
             !has_drop(cx, cx.tables.expr_ty(expr))
                 && fields.iter().all(|field| has_no_effect(cx, &field.expr))
                 && base.as_ref().map_or(true, |base| has_no_effect(cx, base))
-        },
+        }
         ExprKind::Call(ref callee, ref args) => {
             if let ExprKind::Path(ref qpath) = callee.kind {
                 let res = qpath_res(cx, qpath, callee.hir_id);
                 match res {
                     Res::Def(DefKind::Struct | DefKind::Variant | DefKind::Ctor(..), ..) => {
-                        !has_drop(cx, cx.tables.expr_ty(expr)) && args.iter().all(|arg| has_no_effect(cx, arg))
-                    },
+                        !has_drop(cx, cx.tables.expr_ty(expr))
+                            && args.iter().all(|arg| has_no_effect(cx, arg))
+                    }
                     _ => false,
                 }
             } else {
                 false
             }
-        },
+        }
         ExprKind::Block(ref block, _) => {
-            block.stmts.is_empty() && block.expr.as_ref().map_or(false, |expr| has_no_effect(cx, expr))
-        },
+            block.stmts.is_empty()
+                && block.expr.as_ref().map_or(false, |expr| has_no_effect(cx, expr))
+        }
         _ => false,
     }
 }
@@ -119,15 +121,20 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for NoEffect {
     }
 }
 
-fn reduce_expression<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option<Vec<&'a Expr<'a>>> {
+fn reduce_expression<'a>(
+    cx: &LateContext<'_, '_>,
+    expr: &'a Expr<'a>,
+) -> Option<Vec<&'a Expr<'a>>> {
     if expr.span.from_expansion() {
         return None;
     }
     match expr.kind {
         ExprKind::Index(ref a, ref b) => Some(vec![&**a, &**b]),
-        ExprKind::Binary(ref binop, ref a, ref b) if binop.node != BinOpKind::And && binop.node != BinOpKind::Or => {
+        ExprKind::Binary(ref binop, ref a, ref b)
+            if binop.node != BinOpKind::And && binop.node != BinOpKind::Or =>
+        {
             Some(vec![&**a, &**b])
-        },
+        }
         ExprKind::Array(ref v) | ExprKind::Tup(ref v) => Some(v.iter().collect()),
         ExprKind::Repeat(ref inner, _)
         | ExprKind::Cast(ref inner, _)
@@ -142,22 +149,24 @@ fn reduce_expression<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option
             } else {
                 Some(fields.iter().map(|f| &f.expr).chain(base).map(Deref::deref).collect())
             }
-        },
+        }
         ExprKind::Call(ref callee, ref args) => {
             if let ExprKind::Path(ref qpath) = callee.kind {
                 let res = qpath_res(cx, qpath, callee.hir_id);
                 match res {
-                    Res::Def(DefKind::Struct, ..) | Res::Def(DefKind::Variant, ..) | Res::Def(DefKind::Ctor(..), _)
+                    Res::Def(DefKind::Struct, ..)
+                    | Res::Def(DefKind::Variant, ..)
+                    | Res::Def(DefKind::Ctor(..), _)
                         if !has_drop(cx, cx.tables.expr_ty(expr)) =>
                     {
                         Some(args.iter().collect())
-                    },
+                    }
                     _ => None,
                 }
             } else {
                 None
             }
-        },
+        }
         ExprKind::Block(ref block, _) => {
             if block.stmts.is_empty() {
                 block.expr.as_ref().and_then(|e| {
@@ -171,7 +180,7 @@ fn reduce_expression<'a>(cx: &LateContext<'_, '_>, expr: &'a Expr<'a>) -> Option
             } else {
                 None
             }
-        },
+        }
         _ => None,
     }
 }

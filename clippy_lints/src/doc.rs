@@ -1,4 +1,6 @@
-use crate::utils::{implements_trait, is_entrypoint_fn, is_type_diagnostic_item, return_ty, span_lint};
+use crate::utils::{
+    implements_trait, is_entrypoint_fn, is_type_diagnostic_item, return_ty, span_lint,
+};
 use if_chain::if_chain;
 use itertools::Itertools;
 use rustc_ast::ast::{AttrKind, Attribute};
@@ -137,10 +139,7 @@ pub struct DocMarkdown {
 
 impl DocMarkdown {
     pub fn new(valid_idents: FxHashSet<String>) -> Self {
-        Self {
-            valid_idents,
-            in_trait_impl: false,
-        }
+        Self { valid_idents, in_trait_impl: false }
     }
 }
 
@@ -158,16 +157,20 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for DocMarkdown {
                 if !(is_entrypoint_fn(cx, cx.tcx.hir().local_def_id(item.hir_id).to_def_id())
                     || in_external_macro(cx.tcx.sess, item.span))
                 {
-                    lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, Some(body_id));
+                    lint_for_missing_headers(
+                        cx,
+                        item.hir_id,
+                        item.span,
+                        sig,
+                        headers,
+                        Some(body_id),
+                    );
                 }
-            },
-            hir::ItemKind::Impl {
-                of_trait: ref trait_ref,
-                ..
-            } => {
+            }
+            hir::ItemKind::Impl { of_trait: ref trait_ref, .. } => {
                 self.in_trait_impl = trait_ref.is_some();
-            },
-            _ => {},
+            }
+            _ => {}
         }
     }
 
@@ -209,12 +212,7 @@ fn lint_for_missing_headers<'a, 'tcx>(
         return; // Private functions do not require doc comments
     }
     if !headers.safety && sig.header.unsafety == hir::Unsafety::Unsafe {
-        span_lint(
-            cx,
-            MISSING_SAFETY_DOC,
-            span,
-            "unsafe function's docs miss `# Safety` section",
-        );
+        span_lint(cx, MISSING_SAFETY_DOC, span, "unsafe function's docs miss `# Safety` section");
     }
     if !headers.errors {
         if is_type_diagnostic_item(cx, return_ty(cx, hir_id), sym!(result_type)) {
@@ -313,7 +311,11 @@ struct DocHeaders {
     errors: bool,
 }
 
-fn check_attrs<'a>(cx: &LateContext<'_, '_>, valid_idents: &FxHashSet<String>, attrs: &'a [Attribute]) -> DocHeaders {
+fn check_attrs<'a>(
+    cx: &LateContext<'_, '_>,
+    valid_idents: &FxHashSet<String>,
+    attrs: &'a [Attribute],
+) -> DocHeaders {
     let mut doc = String::new();
     let mut spans = vec![];
 
@@ -326,10 +328,7 @@ fn check_attrs<'a>(cx: &LateContext<'_, '_>, valid_idents: &FxHashSet<String>, a
         } else if attr.check_name(sym!(doc)) {
             // ignore mix of sugared and non-sugared doc
             // don't trigger the safety or errors check
-            return DocHeaders {
-                safety: true,
-                errors: true,
-            };
+            return DocHeaders { safety: true, errors: true };
         }
     }
 
@@ -341,10 +340,7 @@ fn check_attrs<'a>(cx: &LateContext<'_, '_>, valid_idents: &FxHashSet<String>, a
     }
 
     if doc.is_empty() {
-        return DocHeaders {
-            safety: false,
-            errors: false,
-        };
+        return DocHeaders { safety: false, errors: false };
     }
 
     let parser = pulldown_cmark::Parser::new(&doc).into_offset_iter();
@@ -360,7 +356,7 @@ fn check_attrs<'a>(cx: &LateContext<'_, '_>, valid_idents: &FxHashSet<String>, a
                 let mut previous = previous.to_string();
                 previous.push_str(&current);
                 Ok((Text(previous.into()), previous_range))
-            },
+            }
             (previous, current) => Err(((previous, previous_range), (current, current_range))),
         }
     });
@@ -382,10 +378,7 @@ fn check_doc<'a, Events: Iterator<Item = (pulldown_cmark::Event<'a>, Range<usize
     };
     use pulldown_cmark::Tag::{CodeBlock, Heading, Link};
 
-    let mut headers = DocHeaders {
-        safety: false,
-        errors: false,
-    };
+    let mut headers = DocHeaders { safety: false, errors: false };
     let mut in_code = false;
     let mut in_link = None;
     let mut in_heading = false;
@@ -395,14 +388,15 @@ fn check_doc<'a, Events: Iterator<Item = (pulldown_cmark::Event<'a>, Range<usize
             Start(CodeBlock(ref kind)) => {
                 in_code = true;
                 if let CodeBlockKind::Fenced(lang) = kind {
-                    is_rust =
-                        lang.is_empty() || !lang.contains("ignore") && lang.split(',').any(|i| RUST_CODE.contains(&i));
+                    is_rust = lang.is_empty()
+                        || !lang.contains("ignore")
+                            && lang.split(',').any(|i| RUST_CODE.contains(&i));
                 }
-            },
+            }
             End(CodeBlock(_)) => {
                 in_code = false;
                 is_rust = false;
-            },
+            }
             Start(Link(_, url, _)) => in_link = Some(url),
             End(Link(..)) => in_link = None,
             Start(Heading(_)) => in_heading = true,
@@ -434,13 +428,14 @@ fn check_doc<'a, Events: Iterator<Item = (pulldown_cmark::Event<'a>, Range<usize
 
                     check_text(cx, valid_idents, &text, span);
                 }
-            },
+            }
         }
     }
     headers
 }
 
-static LEAVE_MAIN_PATTERNS: &[&str] = &["static", "fn main() {}", "extern crate", "async fn main() {"];
+static LEAVE_MAIN_PATTERNS: &[&str] =
+    &["static", "fn main() {}", "extern crate", "async fn main() {"];
 
 fn check_code(cx: &LateContext<'_, '_>, text: &str, span: Span) {
     if text.contains("fn main() {") && !LEAVE_MAIN_PATTERNS.iter().any(|p| text.contains(p)) {

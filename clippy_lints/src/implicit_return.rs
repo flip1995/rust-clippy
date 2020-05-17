@@ -79,18 +79,16 @@ fn expr_match(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
                     }
                 }
             }
-        },
+        }
         // use `return` instead of `break`
         ExprKind::Break(.., break_expr) => {
             if let Some(break_expr) = break_expr {
                 lint(cx, expr.span, break_expr.span, LINT_BREAK);
             }
-        },
+        }
         ExprKind::Match(.., arms, source) => {
             let check_all_arms = match source {
-                MatchSource::IfLetDesugar {
-                    contains_else_clause: has_else,
-                } => has_else,
+                MatchSource::IfLetDesugar { contains_else_clause: has_else } => has_else,
                 _ => true,
             };
 
@@ -101,7 +99,7 @@ fn expr_match(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
             } else {
                 expr_match(cx, &arms.first().expect("`if let` doesn't have a single arm").body);
             }
-        },
+        }
         // skip if it already has a return statement
         ExprKind::Ret(..) => (),
         // make sure it's not a call that panics
@@ -116,7 +114,7 @@ fn expr_match(cx: &LateContext<'_, '_>, expr: &Expr<'_>) {
                     lint(cx, expr.span, expr.span, LINT_RETURN)
                 }
             }
-        },
+        }
         // everything else is missing `return`
         _ => lint(cx, expr.span, expr.span, LINT_RETURN),
     }

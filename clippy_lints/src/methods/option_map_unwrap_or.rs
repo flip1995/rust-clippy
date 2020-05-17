@@ -25,10 +25,7 @@ pub(super) fn lint<'a, 'tcx>(
             // Do not lint if the `map` argument uses identifiers in the `map`
             // argument that are also used in the `unwrap_or` argument
 
-            let mut unwrap_visitor = UnwrapVisitor {
-                cx,
-                identifiers: FxHashSet::default(),
-            };
+            let mut unwrap_visitor = UnwrapVisitor { cx, identifiers: FxHashSet::default() };
             unwrap_visitor.visit_expr(&unwrap_args[1]);
 
             let mut map_expr_visitor = MapExprVisitor {
@@ -49,17 +46,14 @@ pub(super) fn lint<'a, 'tcx>(
 
         let mut applicability = Applicability::MachineApplicable;
         // get snippet for unwrap_or()
-        let unwrap_snippet = snippet_with_applicability(cx, unwrap_args[1].span, "..", &mut applicability);
+        let unwrap_snippet =
+            snippet_with_applicability(cx, unwrap_args[1].span, "..", &mut applicability);
         // lint message
         // comparing the snippet from source to raw text ("None") below is safe
         // because we already have checked the type.
         let arg = if unwrap_snippet == "None" { "None" } else { "a" };
         let unwrap_snippet_none = unwrap_snippet == "None";
-        let suggest = if unwrap_snippet_none {
-            "and_then(f)"
-        } else {
-            "map_or(a, f)"
-        };
+        let suggest = if unwrap_snippet_none { "and_then(f)" } else { "map_or(a, f)" };
         let msg = &format!(
             "called `map(f).unwrap_or({})` on an `Option` value. \
             This can be done more directly by calling `{}` instead",
@@ -70,18 +64,22 @@ pub(super) fn lint<'a, 'tcx>(
             let map_arg_span = map_args[1].span;
 
             let mut suggestion = vec![
-                (
-                    map_span,
-                    String::from(if unwrap_snippet_none { "and_then" } else { "map_or" }),
-                ),
+                (map_span, String::from(if unwrap_snippet_none { "and_then" } else { "map_or" })),
                 (expr.span.with_lo(unwrap_args[0].span.hi()), String::from("")),
             ];
 
             if !unwrap_snippet_none {
-                suggestion.push((map_arg_span.with_hi(map_arg_span.lo()), format!("{}, ", unwrap_snippet)));
+                suggestion.push((
+                    map_arg_span.with_hi(map_arg_span.lo()),
+                    format!("{}, ", unwrap_snippet),
+                ));
             }
 
-            diag.multipart_suggestion(&format!("use `{}` instead", suggest), suggestion, applicability);
+            diag.multipart_suggestion(
+                &format!("use `{}` instead", suggest),
+                suggestion,
+                applicability,
+            );
         });
     }
 }
@@ -127,9 +125,5 @@ impl<'a, 'tcx> Visitor<'tcx> for MapExprVisitor<'a, 'tcx> {
 }
 
 fn ident(path: &Path<'_>) -> Symbol {
-    path.segments
-        .last()
-        .expect("segments should be composed of at least 1 element")
-        .ident
-        .name
+    path.segments.last().expect("segments should be composed of at least 1 element").ident.name
 }
