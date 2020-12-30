@@ -1,4 +1,7 @@
-use crate::utils::{implements_trait, is_entrypoint_fn, is_type_diagnostic_item, return_ty, span_lint};
+use crate::utils::{
+    implements_trait, is_entrypoint_fn, is_type_diagnostic_item, match_panic_def_id, method_chain_args, return_ty,
+    span_lint,
+};
 use if_chain::if_chain;
 use itertools::Itertools;
 use rustc_ast::ast::{Async, AttrKind, Attribute, FnRetTy, ItemKind};
@@ -8,7 +11,10 @@ use rustc_data_structures::sync::Lrc;
 use rustc_errors::emitter::EmitterWriter;
 use rustc_errors::Handler;
 use rustc_hir as hir;
+use rustc_hir::intravisit::{self, NestedVisitorMap, Visitor};
+use rustc_hir::{Expr, ExprKind, QPath};
 use rustc_lint::{LateContext, LateLintPass};
+use rustc_middle::hir::map::Map;
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty;
 use rustc_parse::maybe_new_parser_from_source_str;
@@ -122,6 +128,37 @@ declare_clippy_lint! {
 }
 
 declare_clippy_lint! {
+    /// **What it does:** Checks the doc comments of publicly visible functions that
+    /// may panic and warns if there is no `# Panics` section.
+    ///
+    /// **Why is this bad?** Documenting the scenarios in which panicking occurs
+    /// can help callers who do not want to panic to avoid those situations.
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Examples:**
+    ///
+    /// Since the following function may panic it has a `# Panics` section in
+    /// its doc comment:
+    ///
+    /// ```rust
+    /// /// # Panics
+    /// ///
+    /// /// Will panic if y is 0
+    /// pub fn divide_by(x: i32, y: i32) -> i32 {
+    ///     if y == 0 {
+    ///         panic!("Cannot divide by 0")
+    ///     } else {
+    ///         x / y
+    ///     }
+    /// }
+    /// ```
+    pub MISSING_PANICS_DOC,
+    pedantic,
+    "`pub fn` may panic without `# Panics` in doc comment"
+}
+
+declare_clippy_lint! {
     /// **What it does:** Checks for `fn main() { .. }` in doctests
     ///
     /// **Why is this bad?** The test can be shorter (and likely more readable)
@@ -165,7 +202,9 @@ impl DocMarkdown {
     }
 }
 
-impl_lint_pass!(DocMarkdown => [DOC_MARKDOWN, MISSING_SAFETY_DOC, MISSING_ERRORS_DOC, NEEDLESS_DOCTEST_MAIN]);
+impl_lint_pass!(DocMarkdown =>
+    [DOC_MARKDOWN, MISSING_SAFETY_DOC, MISSING_ERRORS_DOC, MISSING_PANICS_DOC, NEEDLESS_DOCTEST_MAIN]
+);
 
 impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
     fn check_crate(&mut self, cx: &LateContext<'tcx>, krate: &'tcx hir::Crate<'_>) {
@@ -179,7 +218,23 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
                 if !(is_entrypoint_fn(cx, cx.tcx.hir().local_def_id(item.hir_id).to_def_id())
                     || in_external_macro(cx.tcx.sess, item.span))
                 {
-                    lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, Some(body_id));
+                    let body = cx.tcx.hir().body(body_id);
+                    let impl_item_def_id = cx.tcx.hir().local_def_id(item.hir_id);
+                    let mut fpu = FindPanicUnwrap {
+                        cx,
+                        typeck_results: cx.tcx.typeck(impl_item_def_id),
+                        found_panicking: false,
+                    };
+                    fpu.visit_expr(&body.value);
+                    lint_for_missing_headers(
+                        cx,
+                        item.hir_id,
+                        item.span,
+                        sig,
+                        headers,
+                        Some(body_id),
+                        fpu.found_panicking,
+                    );
                 }
             },
             hir::ItemKind::Impl {
@@ -202,7 +257,7 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
         let headers = check_attrs(cx, &self.valid_idents, &item.attrs);
         if let hir::TraitItemKind::Fn(ref sig, ..) = item.kind {
             if !in_external_macro(cx.tcx.sess, item.span) {
-                lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, None);
+                lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, None, false);
             }
         }
     }
@@ -213,7 +268,23 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
             return;
         }
         if let hir::ImplItemKind::Fn(ref sig, body_id) = item.kind {
-            lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, Some(body_id));
+            let body = cx.tcx.hir().body(body_id);
+            let impl_item_def_id = cx.tcx.hir().local_def_id(item.hir_id);
+            let mut fpu = FindPanicUnwrap {
+                cx,
+                found_panicking: false,
+                typeck_results: cx.tcx.typeck(impl_item_def_id),
+            };
+            fpu.visit_expr(&body.value);
+            lint_for_missing_headers(
+                cx,
+                item.hir_id,
+                item.span,
+                sig,
+                headers,
+                Some(body_id),
+                fpu.found_panicking,
+            );
         }
     }
 }
@@ -225,6 +296,7 @@ fn lint_for_missing_headers<'tcx>(
     sig: &hir::FnSig<'_>,
     headers: DocHeaders,
     body_id: Option<hir::BodyId>,
+    found_panicking: bool,
 ) {
     if !cx.access_levels.is_exported(hir_id) {
         return; // Private functions do not require doc comments
@@ -235,6 +307,14 @@ fn lint_for_missing_headers<'tcx>(
             MISSING_SAFETY_DOC,
             span,
             "unsafe function's docs miss `# Safety` section",
+        );
+    }
+    if !headers.panics && found_panicking {
+        span_lint(
+            cx,
+            MISSING_PANICS_DOC,
+            span,
+            "docs for function which may panic missing `# Panics` section",
         );
     }
     if !headers.errors {
@@ -323,6 +403,7 @@ pub fn strip_doc_comment_decoration(doc: &str, comment_kind: CommentKind, span: 
 struct DocHeaders {
     safety: bool,
     errors: bool,
+    panics: bool,
 }
 
 fn check_attrs<'a>(cx: &LateContext<'_>, valid_idents: &FxHashSet<String>, attrs: &'a [Attribute]) -> DocHeaders {
@@ -340,6 +421,7 @@ fn check_attrs<'a>(cx: &LateContext<'_>, valid_idents: &FxHashSet<String>, attrs
             return DocHeaders {
                 safety: true,
                 errors: true,
+                panics: true,
             };
         }
     }
@@ -355,6 +437,7 @@ fn check_attrs<'a>(cx: &LateContext<'_>, valid_idents: &FxHashSet<String>, attrs
         return DocHeaders {
             safety: false,
             errors: false,
+            panics: false,
         };
     }
 
@@ -396,6 +479,7 @@ fn check_doc<'a, Events: Iterator<Item = (pulldown_cmark::Event<'a>, Range<usize
     let mut headers = DocHeaders {
         safety: false,
         errors: false,
+        panics: false,
     };
     let mut in_code = false;
     let mut in_link = None;
@@ -441,6 +525,7 @@ fn check_doc<'a, Events: Iterator<Item = (pulldown_cmark::Event<'a>, Range<usize
                 }
                 headers.safety |= in_heading && text.trim() == "Safety";
                 headers.errors |= in_heading && text.trim() == "Errors";
+                headers.panics |= in_heading && text.trim() == "Panics";
                 let index = match spans.binary_search_by(|c| c.0.cmp(&range.start)) {
                     Ok(o) => o,
                     Err(e) => e - 1,
@@ -607,5 +692,45 @@ fn check_word(cx: &LateContext<'_>, word: &str, span: Span) {
             span,
             &format!("you should put `{}` between ticks in the documentation", word),
         );
+    }
+}
+
+struct FindPanicUnwrap<'a, 'tcx> {
+    cx: &'a LateContext<'tcx>,
+    found_panicking: bool,
+    typeck_results: &'tcx ty::TypeckResults<'tcx>,
+}
+
+impl<'a, 'tcx> Visitor<'tcx> for FindPanicUnwrap<'a, 'tcx> {
+    type Map = Map<'tcx>;
+
+    fn visit_expr(&mut self, expr: &'tcx Expr<'_>) {
+        // check for `begin_panic`
+        if_chain! {
+            if let ExprKind::Call(ref func_expr, _) = expr.kind;
+            if let ExprKind::Path(QPath::Resolved(_, ref path)) = func_expr.kind;
+            if let Some(path_def_id) = path.res.opt_def_id();
+            if match_panic_def_id(self.cx, path_def_id);
+            then {
+                self.found_panicking = true;
+            }
+        }
+
+        // check for `unwrap`
+        if let Some(arglists) = method_chain_args(expr, &["unwrap"]) {
+            let reciever_ty = self.typeck_results.expr_ty(&arglists[0][0]).peel_refs();
+            if is_type_diagnostic_item(self.cx, reciever_ty, sym::option_type)
+                || is_type_diagnostic_item(self.cx, reciever_ty, sym::result_type)
+            {
+                self.found_panicking = true;
+            }
+        }
+
+        // and check sub-expressions
+        intravisit::walk_expr(self, expr);
+    }
+
+    fn nested_visit_map(&mut self) -> NestedVisitorMap<Self::Map> {
+        NestedVisitorMap::OnlyBodies(self.cx.tcx.hir())
     }
 }

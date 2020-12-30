@@ -1,0 +1,41 @@
+error: docs for function which may panic missing `# Panics` section
+  --> $DIR/doc_panics.rs:7:1
+   |
+LL | / pub fn unwrap() {
+LL | |     let result = Err("Hi");
+LL | |     result.unwrap()
+LL | | }
+   | |_^
+   |
+   = note: `-D clippy::missing-panics-doc` implied by `-D warnings`
+
+error: docs for function which may panic missing `# Panics` section
+  --> $DIR/doc_panics.rs:13:1
+   |
+LL | / pub fn panic() {
+LL | |     panic!("This function panics")
+LL | | }
+   | |_^
+
+error: docs for function which may panic missing `# Panics` section
+  --> $DIR/doc_panics.rs:18:1
+   |
+LL | / pub fn todo() {
+LL | |     todo!()
+LL | | }
+   | |_^
+
+error: docs for function which may panic missing `# Panics` section
+  --> $DIR/doc_panics.rs:23:1
+   |
+LL | / pub fn inner_body(opt: Option<u32>) {
+LL | |     opt.map(|x| {
+LL | |         if x == 10 {
+LL | |             panic!()
+LL | |         }
+LL | |     });
+LL | | }
+   | |_^
+
+error: aborting due to 4 previous errors
+
