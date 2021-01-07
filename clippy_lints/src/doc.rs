@@ -1,6 +1,6 @@
 use crate::utils::{
     implements_trait, is_entrypoint_fn, is_type_diagnostic_item, match_panic_def_id, method_chain_args, return_ty,
-    span_lint,
+    span_lint, span_lint_and_note,
 };
 use if_chain::if_chain;
 use itertools::Itertools;
@@ -13,7 +13,7 @@ use rustc_errors::Handler;
 use rustc_hir as hir;
 use rustc_hir::intravisit::{self, NestedVisitorMap, Visitor};
 use rustc_hir::{Expr, ExprKind, QPath};
-use rustc_lint::{LateContext, LateLintPass};
+use rustc_lint::{LateContext, LateLintPass, LintContext};
 use rustc_middle::hir::map::Map;
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty;
@@ -223,18 +223,10 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
                     let mut fpu = FindPanicUnwrap {
                         cx,
                         typeck_results: cx.tcx.typeck(impl_item_def_id),
-                        found_panicking: false,
+                        panic_span: None,
                     };
                     fpu.visit_expr(&body.value);
-                    lint_for_missing_headers(
-                        cx,
-                        item.hir_id,
-                        item.span,
-                        sig,
-                        headers,
-                        Some(body_id),
-                        fpu.found_panicking,
-                    );
+                    lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, Some(body_id), fpu.panic_span);
                 }
             },
             hir::ItemKind::Impl {
@@ -257,7 +249,7 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
         let headers = check_attrs(cx, &self.valid_idents, &item.attrs);
         if let hir::TraitItemKind::Fn(ref sig, ..) = item.kind {
             if !in_external_macro(cx.tcx.sess, item.span) {
-                lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, None, false);
+                lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, None, None);
             }
         }
     }
@@ -272,19 +264,11 @@ impl<'tcx> LateLintPass<'tcx> for DocMarkdown {
             let impl_item_def_id = cx.tcx.hir().local_def_id(item.hir_id);
             let mut fpu = FindPanicUnwrap {
                 cx,
-                found_panicking: false,
                 typeck_results: cx.tcx.typeck(impl_item_def_id),
+                panic_span: None,
             };
             fpu.visit_expr(&body.value);
-            lint_for_missing_headers(
-                cx,
-                item.hir_id,
-                item.span,
-                sig,
-                headers,
-                Some(body_id),
-                fpu.found_panicking,
-            );
+            lint_for_missing_headers(cx, item.hir_id, item.span, sig, headers, Some(body_id), fpu.panic_span);
         }
     }
 }
@@ -296,7 +280,7 @@ fn lint_for_missing_headers<'tcx>(
     sig: &hir::FnSig<'_>,
     headers: DocHeaders,
     body_id: Option<hir::BodyId>,
-    found_panicking: bool,
+    panic_span: Option<Span>,
 ) {
     if !cx.access_levels.is_exported(hir_id) {
         return; // Private functions do not require doc comments
@@ -309,12 +293,14 @@ fn lint_for_missing_headers<'tcx>(
             "unsafe function's docs miss `# Safety` section",
         );
     }
-    if !headers.panics && found_panicking {
-        span_lint(
+    if !headers.panics && panic_span.is_some() {
+        span_lint_and_note(
             cx,
             MISSING_PANICS_DOC,
             span,
             "docs for function which may panic missing `# Panics` section",
+            panic_span,
+            "first possible panic found here",
         );
     }
     if !headers.errors {
@@ -697,7 +683,7 @@ fn check_word(cx: &LateContext<'_>, word: &str, span: Span) {
 
 struct FindPanicUnwrap<'a, 'tcx> {
     cx: &'a LateContext<'tcx>,
-    found_panicking: bool,
+    panic_span: Option<Span>,
     typeck_results: &'tcx ty::TypeckResults<'tcx>,
 }
 
@@ -705,6 +691,10 @@ impl<'a, 'tcx> Visitor<'tcx> for FindPanicUnwrap<'a, 'tcx> {
     type Map = Map<'tcx>;
 
     fn visit_expr(&mut self, expr: &'tcx Expr<'_>) {
+        if self.panic_span.is_some() {
+            return;
+        }
+
         // check for `begin_panic`
         if_chain! {
             if let ExprKind::Call(ref func_expr, _) = expr.kind;
@@ -712,7 +702,7 @@ impl<'a, 'tcx> Visitor<'tcx> for FindPanicUnwrap<'a, 'tcx> {
             if let Some(path_def_id) = path.res.opt_def_id();
             if match_panic_def_id(self.cx, path_def_id);
             then {
-                self.found_panicking = true;
+                self.panic_span = Some(expr.span);
             }
         }
 
