@@ -706,13 +706,15 @@ impl<'a, 'tcx> Visitor<'tcx> for FindPanicUnwrap<'a, 'tcx> {
             }
         }
 
-        // check for `unwrap`
-        if let Some(arglists) = method_chain_args(expr, &["unwrap"]) {
-            let reciever_ty = self.typeck_results.expr_ty(&arglists[0][0]).peel_refs();
-            if is_type_diagnostic_item(self.cx, reciever_ty, sym::option_type)
-                || is_type_diagnostic_item(self.cx, reciever_ty, sym::result_type)
-            {
-                self.found_panicking = true;
+        if !in_external_macro(self.cx.sess(), expr.span) {
+            // check for `unwrap`
+            if let Some(arglists) = method_chain_args(expr, &["unwrap"]) {
+                let reciever_ty = self.typeck_results.expr_ty(&arglists[0][0]).peel_refs();
+                if is_type_diagnostic_item(self.cx, reciever_ty, sym::option_type)
+                    || is_type_diagnostic_item(self.cx, reciever_ty, sym::result_type)
+                {
+                    self.panic_span = Some(expr.span);
+                }
             }
         }
 
