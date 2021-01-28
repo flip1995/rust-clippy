@@ -89,6 +89,15 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
     }
 }
 
+struct AllowStatsCallbacks;
+impl rustc_driver::Callbacks for AllowStatsCallbacks {
+    fn config(&mut self, config: &mut interface::Config) {
+        config.register_lints = Some(Box::new(move |_, mut lint_store| {
+            clippy_lints::run_allow_stats(&mut lint_store);
+        }));
+    }
+}
+
 fn display_help() {
     println!(
         "\
@@ -279,6 +288,7 @@ pub fn main() {
         };
 
         let mut no_deps = false;
+        let mut allow_stats_enabled = false;
         let clippy_args = env::var("CLIPPY_ARGS")
             .unwrap_or_default()
             .split("__CLIPPY_HACKERY__")
@@ -286,6 +296,10 @@ pub fn main() {
                 "" => None,
                 "--no-deps" => {
                     no_deps = true;
+                    None
+                },
+                "--allow-stats" => {
+                    allow_stats_enabled = true;
                     None
                 },
                 _ => Some(s.to_string()),
@@ -307,10 +321,18 @@ pub fn main() {
             args.extend(clippy_args);
         }
 
+        let mut allow_stats = AllowStatsCallbacks;
         let mut clippy = ClippyCallbacks;
         let mut default = DefaultCallbacks;
-        let callbacks: &mut (dyn rustc_driver::Callbacks + Send) =
-            if clippy_enabled { &mut clippy } else { &mut default };
+        let callbacks: &mut (dyn rustc_driver::Callbacks + Send) = if clippy_enabled {
+            if allow_stats_enabled {
+                &mut allow_stats
+            } else {
+                &mut clippy
+            }
+        } else {
+            &mut default
+        };
 
         rustc_driver::RunCompiler::new(&args, callbacks).run()
     }))

@@ -1,23 +1,29 @@
 //! checks for attributes
 
+use std::{
+    fmt::{Display, Formatter, Result},
+    iter::FromIterator,
+};
+
 use crate::utils::{
     first_line_of_span, is_present_in_source, match_panic_def_id, snippet_opt, span_lint, span_lint_and_help,
     span_lint_and_sugg, span_lint_and_then, without_block_comments,
 };
 use if_chain::if_chain;
-use rustc_ast::{AttrKind, AttrStyle, Attribute, Lit, LitKind, MetaItemKind, NestedMetaItem};
+use rustc_ast::{AttrId, AttrKind, AttrStyle, Attribute, Lit, LitKind, MetaItemKind, NestedMetaItem};
+use rustc_data_structures::fx::{FxHashMap, FxHashSet};
 use rustc_errors::Applicability;
 use rustc_hir::{
-    Block, Expr, ExprKind, ImplItem, ImplItemKind, Item, ItemKind, StmtKind, TraitFn, TraitItem, TraitItemKind,
+    Block, Crate, Expr, ExprKind, ImplItem, ImplItemKind, Item, ItemKind, StmtKind, TraitFn, TraitItem, TraitItemKind,
 };
 use rustc_lint::{CheckLintNameResult, EarlyContext, EarlyLintPass, LateContext, LateLintPass, LintContext};
 use rustc_middle::lint::in_external_macro;
 use rustc_middle::ty;
-use rustc_session::{declare_lint_pass, declare_tool_lint};
+use rustc_session::{declare_lint_pass, declare_tool_lint, impl_lint_pass};
 use rustc_span::lev_distance::find_best_match_for_name;
 use rustc_span::source_map::Span;
 use rustc_span::sym;
-use rustc_span::symbol::{Symbol, SymbolStr};
+use rustc_span::symbol::Symbol;
 use semver::Version;
 
 static UNIX_SYSTEMS: &[&str] = &[
@@ -331,8 +337,9 @@ impl<'tcx> LateLintPass<'tcx> for Attributes {
                                                     || is_word(lint, sym!(unreachable_pub))
                                                     || is_word(lint, sym!(unused))
                                                     || extract_clippy_lint(lint)
-                                                        .map_or(false, |s| s == "wildcard_imports")
-                                                    || extract_clippy_lint(lint).map_or(false, |s| s == "enum_glob_use")
+                                                        .map_or(false, |s| s == sym!(wildcard_imports))
+                                                    || extract_clippy_lint(lint)
+                                                        .map_or(false, |s| s == sym!(enum_glob_use))
                                                 {
                                                     return;
                                                 }
@@ -394,7 +401,7 @@ impl<'tcx> LateLintPass<'tcx> for Attributes {
 }
 
 /// Returns the lint name if it is clippy lint.
-fn extract_clippy_lint(lint: &NestedMetaItem) -> Option<SymbolStr> {
+fn extract_clippy_lint(lint: &NestedMetaItem) -> Option<Symbol> {
     if_chain! {
         if let Some(meta_item) = lint.meta_item();
         if meta_item.path.segments.len() > 1;
@@ -402,7 +409,7 @@ fn extract_clippy_lint(lint: &NestedMetaItem) -> Option<SymbolStr> {
         if tool_name.name == sym::clippy;
         let lint_name = meta_item.path.segments.last().unwrap().ident.name;
         then {
-            return Some(lint_name.as_str());
+            return Some(lint_name);
         }
     }
     None
@@ -412,7 +419,8 @@ fn check_clippy_lint_names(cx: &LateContext<'_>, ident: &str, items: &[NestedMet
     let lint_store = cx.lints();
     for lint in items {
         if let Some(lint_name) = extract_clippy_lint(lint) {
-            if let CheckLintNameResult::Tool(Err((None, _))) = lint_store.check_lint_name(&lint_name, Some(sym::clippy))
+            if let CheckLintNameResult::Tool(Err((None, _))) =
+                lint_store.check_lint_name(&lint_name.as_str(), Some(sym::clippy))
             {
                 span_lint_and_then(
                     cx,
@@ -420,7 +428,7 @@ fn check_clippy_lint_names(cx: &LateContext<'_>, ident: &str, items: &[NestedMet
                     lint.span(),
                     &format!("unknown clippy lint: clippy::{}", lint_name),
                     |diag| {
-                        let name_lower = lint_name.to_lowercase();
+                        let name_lower = lint_name.as_str().to_lowercase();
                         let symbols = lint_store
                             .get_lints()
                             .iter()
@@ -431,7 +439,7 @@ fn check_clippy_lint_names(cx: &LateContext<'_>, ident: &str, items: &[NestedMet
                             Symbol::intern(&format!("clippy::{}", name_lower)),
                             None,
                         );
-                        if lint_name.chars().any(char::is_uppercase)
+                        if lint_name.as_str().chars().any(char::is_uppercase)
                             && lint_store.find_lints(&format!("clippy::{}", name_lower)).is_ok()
                         {
                             diag.span_suggestion(
@@ -450,7 +458,7 @@ fn check_clippy_lint_names(cx: &LateContext<'_>, ident: &str, items: &[NestedMet
                         }
                     },
                 );
-            } else if lint_name == "restriction" && ident != "allow" {
+            } else if lint_name == sym!(restriction) && ident != "allow" {
                 span_lint_and_help(
                     cx,
                     BLANKET_CLIPPY_RESTRICTION_LINTS,
@@ -713,5 +721,120 @@ fn check_mismatched_target_os(cx: &EarlyContext<'_>, attr: &Attribute) {
                 }
             });
         }
+    }
+}
+
+declare_clippy_lint! {
+    /// **What it does:**
+    ///
+    /// **Why is this bad?**
+    ///
+    /// **Known problems:** None.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// // example code where clippy issues a warning
+    /// ```
+    /// Use instead:
+    /// ```rust
+    /// // example code which does not raise clippy warning
+    /// ```
+    pub ALLOW_STATS,
+    internal_warn,
+    "default lint description"
+}
+
+#[derive(Default, Clone)]
+pub struct AllowStats {
+    global_allow_map: FxHashMap<Symbol, usize>,
+    inner_allow_map: FxHashMap<Symbol, usize>,
+    outer_allow_map: FxHashMap<Symbol, usize>,
+    handled_attributes: FxHashSet<AttrId>,
+    crate_name: Option<String>,
+}
+
+impl AllowStats {
+    fn handle_attr(&mut self, attr: &Attribute, global: bool) {
+        if_chain! {
+            if let Some(items) = &attr.meta_item_list();
+            if let Some(ident) = attr.ident();
+            if ident.name == sym::allow;
+            then {
+                for item in items {
+                    if let Some(lint) = extract_clippy_lint(item) {
+                        if global {
+                            *self.global_allow_map.entry(lint).or_default() += 1;
+                        } else {
+                            match attr.style {
+                                AttrStyle::Inner => *self.inner_allow_map.entry(lint).or_default() += 1,
+                                AttrStyle::Outer => *self.outer_allow_map.entry(lint).or_default() += 1,
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl_lint_pass!(AllowStats => [ALLOW_STATS]);
+
+impl LateLintPass<'_> for AllowStats {
+    fn check_crate(&mut self, cx: &LateContext<'_>, krate: &Crate<'_>) {
+        self.crate_name = cx.sess().opts.crate_name.clone();
+        for attr in krate.item.attrs {
+            self.handle_attr(attr, true);
+            self.handled_attributes.insert(attr.id);
+        }
+    }
+
+    fn check_crate_post(&mut self, _: &LateContext<'_>, _: &Crate<'_>) {
+        print!("{}", self);
+    }
+
+    fn check_attribute(&mut self, _: &LateContext<'_>, attr: &Attribute) {
+        if !self.handled_attributes.contains(&attr.id) {
+            self.handle_attr(attr, false);
+        }
+    }
+}
+
+impl Display for AllowStats {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        if self.global_allow_map.is_empty() && self.inner_allow_map.is_empty() && self.outer_allow_map.is_empty() {
+            return Ok(());
+        }
+        if let Some(crate_name) = &self.crate_name {
+            writeln!(f, "{}:", crate_name)?;
+        } else {
+            writeln!(f, "<unknown crate>:")?;
+        }
+        if !self.global_allow_map.is_empty() {
+            writeln!(f, "  Global allow attributes:")?;
+            let mut v = Vec::from_iter(self.global_allow_map.clone());
+            v.sort_by(|(_, a), (_, b)| b.cmp(&a));
+            for (lint_name, amount) in v {
+                writeln!(f, "    {}: {}", lint_name, amount)?;
+            }
+        }
+        if !self.inner_allow_map.is_empty() {
+            writeln!(f, "  Inner allow attributes:")?;
+            let mut v = Vec::from_iter(self.inner_allow_map.clone());
+            v.sort_by(|(_, a), (_, b)| b.cmp(&a));
+            for (lint_name, amount) in v {
+                writeln!(f, "    {}: {}", lint_name, amount)?;
+            }
+        }
+        if !self.outer_allow_map.is_empty() {
+            writeln!(f, "  Outer allow attributes:")?;
+            let mut v = Vec::from_iter(self.outer_allow_map.clone());
+            v.sort_by(|(_, a), (_, b)| b.cmp(&a));
+            for (lint_name, amount) in v {
+                writeln!(f, "    {}: {}", lint_name, amount)?;
+            }
+        }
+
+        Ok(())
     }
 }
