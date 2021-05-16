@@ -347,6 +347,10 @@ struct LintcheckConfig {
     lintcheck_results_path: PathBuf,
     // whether to just run --fix and not collect all the warnings
     fix: bool,
+    // Path to cargo-clippy, if non passed defaults to CARGO_CLIPPY_PATH
+    cargo_clippy_path: PathBuf,
+    // Path to clippy-driver, if non passed defaults to CLIPPY_DRIVER_PATH
+    clippy_driver_path: PathBuf,
 }
 
 impl LintcheckConfig {
@@ -390,11 +394,28 @@ impl LintcheckConfig {
         };
         let fix: bool = clap_config.is_present("fix");
 
+        let (cargo_clippy_path, clippy_driver_path) = if let Some(val) = clap_config.value_of("bin") {
+            assert!(
+                val.ends_with("cargo-clippy"),
+                "binary has to point to a file named `cargo-clippy`"
+            );
+            let cargo_clippy_path: PathBuf = val.into();
+            let clippy_driver_path = cargo_clippy_path
+                .parent()
+                .expect("cargo-clippy should be in a directory")
+                .join("clippy-driver");
+            (cargo_clippy_path, clippy_driver_path)
+        } else {
+            (CARGO_CLIPPY_PATH.into(), CLIPPY_DRIVER_PATH.into())
+        };
+
         LintcheckConfig {
             max_jobs,
             sources_toml_path,
             lintcheck_results_path,
             fix,
+            cargo_clippy_path,
+            clippy_driver_path,
         }
     }
 }
@@ -566,23 +587,25 @@ fn gather_stats(clippy_warnings: &[ClippyWarning]) -> (String, HashMap<&String, 
 
 /// check if the latest modification of the logfile is older than the modification date of the
 /// clippy binary, if this is true, we should clean the lintchec shared target directory and recheck
-fn lintcheck_needs_rerun(lintcheck_logs_path: &Path) -> bool {
-    if !lintcheck_logs_path.exists() {
+fn lintcheck_needs_rerun(config: &LintcheckConfig) -> bool {
+    if !config.lintcheck_results_path.exists() {
         return true;
     }
 
     let clippy_modified: std::time::SystemTime = {
-        let mut times = [CLIPPY_DRIVER_PATH, CARGO_CLIPPY_PATH].iter().map(|p| {
-            std::fs::metadata(p)
+        let paths = [&config.clippy_driver_path, &config.cargo_clippy_path];
+        let mut times = paths.iter().map(|p| {
+            let modified = std::fs::metadata(p)
                 .expect("failed to get metadata of file")
                 .modified()
-                .expect("failed to get modification date")
+                .expect("failed to get modification date");
+            modified
         });
         // the oldest modification of either of the binaries
         std::cmp::max(times.next().unwrap(), times.next().unwrap())
     };
 
-    let logs_modified: std::time::SystemTime = std::fs::metadata(lintcheck_logs_path)
+    let logs_modified: std::time::SystemTime = std::fs::metadata(&config.lintcheck_results_path)
         .expect("failed to get metadata of file")
         .modified()
         .expect("failed to get modification date");
@@ -619,13 +642,15 @@ pub fn main() {
 
     let config = LintcheckConfig::from_clap(clap_config);
 
-    println!("Compiling clippy...");
-    build_clippy();
-    println!("Done compiling");
+    if clap_config.value_of("bin").is_none() {
+        println!("Compiling clippy...");
+        build_clippy();
+        println!("Done compiling");
+    }
 
     // if the clippy bin is newer than our logs, throw away target dirs to force clippy to
     // refresh the logs
-    if lintcheck_needs_rerun(&config.lintcheck_results_path) {
+    if lintcheck_needs_rerun(&config) {
         let shared_target_dir = "target/lintcheck/shared_target_dir";
         // if we get an Err here, the shared target dir probably does simply not exist
         if let Ok(metadata) = std::fs::metadata(&shared_target_dir) {
@@ -637,7 +662,8 @@ pub fn main() {
         }
     }
 
-    let cargo_clippy_path: PathBuf = PathBuf::from(CARGO_CLIPPY_PATH)
+    let cargo_clippy_path: PathBuf = config
+        .cargo_clippy_path
         .canonicalize()
         .expect("failed to canonicalize path to clippy binary");
 
@@ -648,7 +674,7 @@ pub fn main() {
         cargo_clippy_path.display()
     );
 
-    let clippy_ver = std::process::Command::new(CARGO_CLIPPY_PATH)
+    let clippy_ver = std::process::Command::new(&config.cargo_clippy_path)
         .arg("--version")
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
@@ -881,6 +907,14 @@ fn get_clap_config<'a>() -> ArgMatches<'a> {
             Arg::with_name("fix")
                 .long("--fix")
                 .help("runs cargo clippy --fix and checks if all suggestions apply"),
+        )
+        .arg(
+            Arg::with_name("bin")
+                .long("--bin")
+                .takes_value(true)
+                .value_name("BINARY")
+                .hidden(true)
+                .help("specify clippy binary instead of building it from source"),
         )
         .get_matches()
 }
