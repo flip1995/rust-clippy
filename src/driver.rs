@@ -15,53 +15,16 @@ extern crate rustc_session;
 extern crate rustc_span;
 
 use rustc_interface::interface;
-use rustc_session::parse::ParseSess;
+use rustc_session::{config, early_error, getopts, parse::ParseSess};
 use rustc_span::symbol::Symbol;
 use rustc_tools_util::VersionInfo;
 
 use std::borrow::Cow;
 use std::env;
 use std::lazy::SyncLazy;
-use std::ops::Deref;
 use std::panic;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::process::{exit, Command};
-
-/// If a command-line option matches `find_arg`, then apply the predicate `pred` on its value. If
-/// true, then return it. The parameter is assumed to be either `--arg=value` or `--arg value`.
-fn arg_value<'a, T: Deref<Target = str>>(
-    args: &'a [T],
-    find_arg: &str,
-    pred: impl Fn(&str) -> bool,
-) -> Option<&'a str> {
-    let mut args = args.iter().map(Deref::deref);
-    while let Some(arg) = args.next() {
-        let mut arg = arg.splitn(2, '=');
-        if arg.next() != Some(find_arg) {
-            continue;
-        }
-
-        match arg.next().or_else(|| args.next()) {
-            Some(v) if pred(v) => return Some(v),
-            _ => {},
-        }
-    }
-    None
-}
-
-#[test]
-fn test_arg_value() {
-    let args = &["--bar=bar", "--foobar", "123", "--foo"];
-
-    assert_eq!(arg_value(&[] as &[&str], "--foobar", |_| true), None);
-    assert_eq!(arg_value(args, "--bar", |_| false), None);
-    assert_eq!(arg_value(args, "--bar", |_| true), Some("bar"));
-    assert_eq!(arg_value(args, "--bar", |p| p == "bar"), Some("bar"));
-    assert_eq!(arg_value(args, "--bar", |p| p == "foo"), None);
-    assert_eq!(arg_value(args, "--foobar", |p| p == "foo"), None);
-    assert_eq!(arg_value(args, "--foobar", |p| p == "123"), Some("123"));
-    assert_eq!(arg_value(args, "--foo", |_| true), None);
-}
 
 fn track_clippy_args(parse_sess: &mut ParseSess, args_env_var: &Option<String>) {
     parse_sess.env_depinfo.get_mut().insert((
@@ -126,7 +89,7 @@ fn display_help() {
 Checks a package to catch common mistakes and improve your Rust code.
 
 Usage:
-    cargo clippy [options] [--] [<opts>...]
+    clippy-driver [options] [--] [<opts>...]
 
 Common options:
     -h, --help               Print this message
@@ -215,11 +178,36 @@ fn toolchain_path(home: Option<String>, toolchain: Option<String>) -> Option<Pat
 
 #[allow(clippy::too_many_lines)]
 pub fn main() {
+    let mut options = getopts::Options::new();
+    for option in config::rustc_optgroups() {
+        (option.apply)(&mut options);
+    }
+    // Clippy specific options. Make sure to remove them from `args` before passing it to
+    // `RunCompiler`.
+    options.optflag("", "no-deps", "Only run Clippy on the primary package");
+    options.optflag("", "rustc", "Make clippy-driver behave like calling rustc directly");
+    let clippy_args_var = env::var("CLIPPY_ARGS").ok();
+    let mut args: Vec<_> = env::args()
+        .chain(
+            clippy_args_var
+                .as_deref()
+                .unwrap_or_default()
+                .split("__CLIPPY_HACKERY__")
+                .filter_map(|s| match s {
+                    "" => None,
+                    _ => Some(s.to_string()),
+                }),
+        )
+        .chain(vec!["--cfg".into(), r#"feature="cargo-clippy""#.into()])
+        .collect();
+    let matches = options
+        .parse(&args[1..])
+        .unwrap_or_else(|err| early_error(config::ErrorOutputType::default(), &err.to_string()));
+
     rustc_driver::init_rustc_env_logger();
     SyncLazy::force(&ICE_HOOK);
-    exit(rustc_driver::catch_with_exit_code(move || {
-        let mut orig_args: Vec<String> = env::args().collect();
 
+    exit(rustc_driver::catch_with_exit_code(move || {
         // Get the sysroot, looking from most specific to this invocation to the least:
         // - command line
         // - runtime environment
@@ -229,8 +217,8 @@ pub fn main() {
         // - compile-time environment
         //    - SYSROOT
         //    - RUSTUP_HOME, MULTIRUST_HOME, RUSTUP_TOOLCHAIN, MULTIRUST_TOOLCHAIN
-        let sys_root_arg = arg_value(&orig_args, "--sysroot", |_| true);
-        let have_sys_root_arg = sys_root_arg.is_some();
+        let sys_root_arg = matches.opt_str("sysroot");
+        let has_sys_root_arg = sys_root_arg.is_some();
         let sys_root = sys_root_arg
             .map(PathBuf::from)
             .or_else(|| std::env::var("SYSROOT").ok().map(PathBuf::from))
@@ -265,66 +253,54 @@ pub fn main() {
             .map(|pb| pb.to_string_lossy().to_string())
             .expect("need to specify SYSROOT env var during clippy compilation, or use rustup or multirust");
 
+        // this conditional check for the --sysroot flag is there so users can call
+        // `clippy_driver` directly without having to pass --sysroot or anything
+        if !has_sys_root_arg {
+            args.extend(vec!["--sysroot".into(), sys_root]);
+        };
+
+        let remove_arg = |args: &mut Vec<_>, name| {
+            args.remove(
+                args.iter()
+                    .position(|arg| arg == name)
+                    .expect("option must exist because it was parsed"),
+            )
+        };
+
+        // Check for the --no-deps option. If present remove it from the args list.
+        let no_deps = matches.opt_present("no-deps");
+        if no_deps {
+            remove_arg(&mut args, "--no-deps");
+        }
+
         // make "clippy-driver --rustc" work like a subcommand that passes further args to "rustc"
         // for example `clippy-driver --rustc --version` will print the rustc version that clippy-driver
         // uses
-        if let Some(pos) = orig_args.iter().position(|arg| arg == "--rustc") {
-            orig_args.remove(pos);
-            orig_args[0] = "rustc".to_string();
-
-            // if we call "rustc", we need to pass --sysroot here as well
-            let mut args: Vec<String> = orig_args.clone();
-            if !have_sys_root_arg {
-                args.extend(vec!["--sysroot".into(), sys_root]);
-            };
+        if matches.opt_present("rustc") {
+            args[0] = "rustc".to_string();
+            remove_arg(&mut args, "--rustc");
 
             return rustc_driver::RunCompiler::new(&args, &mut DefaultCallbacks).run();
         }
 
-        if orig_args.iter().any(|a| a == "--version" || a == "-V") {
+        if matches.opt_present("version") {
             let version_info = rustc_tools_util::get_version_info!();
             println!("{}", version_info);
             exit(0);
         }
 
         // Setting RUSTC_WRAPPER causes Cargo to pass 'rustc' as the first argument.
-        // We're invoking the compiler programmatically, so we ignore this/
-        let wrapper_mode = orig_args.get(1).map(Path::new).and_then(Path::file_stem) == Some("rustc".as_ref());
-
+        // We're invoking the compiler programmatically, so we ignore this
+        let wrapper_mode = matches.free.contains(&String::from("rustc"));
         if wrapper_mode {
             // we still want to be able to invoke it normally though
-            orig_args.remove(1);
+            remove_arg(&mut args, "rustc");
         }
 
-        if !wrapper_mode && (orig_args.iter().any(|a| a == "--help" || a == "-h") || orig_args.len() == 1) {
+        if !wrapper_mode && (matches.opt_present("help") || env::args().len() == 1) {
             display_help();
             exit(0);
         }
-
-        // this conditional check for the --sysroot flag is there so users can call
-        // `clippy_driver` directly
-        // without having to pass --sysroot or anything
-        let mut args: Vec<String> = orig_args.clone();
-        if !have_sys_root_arg {
-            args.extend(vec!["--sysroot".into(), sys_root]);
-        };
-
-        let mut no_deps = false;
-        let clippy_args_var = env::var("CLIPPY_ARGS").ok();
-        let clippy_args = clippy_args_var
-            .as_deref()
-            .unwrap_or_default()
-            .split("__CLIPPY_HACKERY__")
-            .filter_map(|s| match s {
-                "" => None,
-                "--no-deps" => {
-                    no_deps = true;
-                    None
-                },
-                _ => Some(s.to_string()),
-            })
-            .chain(vec!["--cfg".into(), r#"feature="cargo-clippy""#.into()])
-            .collect::<Vec<String>>();
 
         // We enable Clippy if one of the following conditions is met
         // - IF Clippy is run on its test suite OR
@@ -332,13 +308,10 @@ pub fn main() {
         //    - IF `--no-deps` is not set (`!no_deps`) OR
         //    - IF `--no-deps` is set and Clippy is run on the specified primary package
         let clippy_tests_set = env::var("__CLIPPY_INTERNAL_TESTS").map_or(false, |val| val == "true");
-        let cap_lints_allow = arg_value(&orig_args, "--cap-lints", |val| val == "allow").is_some();
+        let cap_lints_allow = matches.opt_str("cap-lints").map_or(false, |val| val == "allow");
         let in_primary_package = env::var("CARGO_PRIMARY_PACKAGE").is_ok();
 
         let clippy_enabled = clippy_tests_set || (!cap_lints_allow && (!no_deps || in_primary_package));
-        if clippy_enabled {
-            args.extend(clippy_args);
-        }
 
         if clippy_enabled {
             rustc_driver::RunCompiler::new(&args, &mut ClippyCallbacks { clippy_args_var }).run()
