@@ -1,13 +1,12 @@
 //! lint when there is a large size difference between variants on an enum
 
-use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::source::snippet_opt;
+use clippy_utils::{diagnostics::span_lint_and_then, ty::layout_of};
 use rustc_errors::Applicability;
 use rustc_hir::{Item, ItemKind, VariantData};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::lint::in_external_macro;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
-use rustc_target::abi::LayoutOf;
 
 declare_clippy_lint! {
     /// **What it does:** Checks for large size differences between variants on
@@ -78,7 +77,7 @@ impl<'tcx> LateLintPass<'tcx> for LargeEnumVariant {
                         let ty = cx.tcx.type_of(f.did);
                         // don't count generics by filtering out everything
                         // that does not have a layout
-                        cx.layout_of(ty).ok().map(|l| l.size.bytes())
+                        layout_of(cx, ty).map(|l| l.size.bytes())
                     })
                     .sum();
 

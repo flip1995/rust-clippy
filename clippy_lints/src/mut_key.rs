@@ -1,8 +1,8 @@
 use clippy_utils::diagnostics::span_lint;
+use clippy_utils::ty::layout_of;
 use clippy_utils::{match_def_path, paths, trait_ref_of_method};
 use rustc_hir as hir;
 use rustc_lint::{LateContext, LateLintPass};
-use rustc_middle::ty::TypeFoldable;
 use rustc_middle::ty::{Adt, Array, RawPtr, Ref, Slice, Tuple, Ty, TypeAndMut};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::source_map::Span;
@@ -119,11 +119,7 @@ fn is_mutable_type<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>, span: Span) -> bo
             size.try_eval_usize(cx.tcx, cx.param_env).map_or(true, |u| u != 0) && is_mutable_type(cx, inner_ty, span)
         },
         Tuple(..) => ty.tuple_fields().any(|ty| is_mutable_type(cx, ty, span)),
-        Adt(..) => {
-            !ty.has_escaping_bound_vars()
-                && cx.tcx.layout_of(cx.param_env.and(ty)).is_ok()
-                && !ty.is_freeze(cx.tcx.at(span), cx.param_env)
-        },
+        Adt(..) => layout_of(cx, ty).is_some() && !ty.is_freeze(cx.tcx.at(span), cx.param_env),
         _ => false,
     }
 }

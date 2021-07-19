@@ -6,6 +6,7 @@ use std::ptr;
 
 use clippy_utils::diagnostics::span_lint_and_then;
 use clippy_utils::in_constant;
+use clippy_utils::ty::layout_of;
 use if_chain::if_chain;
 use rustc_hir::def::{DefKind, Res};
 use rustc_hir::def_id::DefId;
@@ -121,7 +122,7 @@ fn is_unfrozen<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> bool {
     // since it works when a pointer indirection involves (`Cell<*const T>`).
     // Making up a `ParamEnv` where every generic params and assoc types are `Freeze`is another option;
     // but I'm not sure whether it's a decent way, if possible.
-    cx.tcx.layout_of(cx.param_env.and(ty)).is_ok() && !ty.is_freeze(cx.tcx.at(DUMMY_SP), cx.param_env)
+    layout_of(cx, ty).is_some() && !ty.is_freeze(cx.tcx.at(DUMMY_SP), cx.param_env)
 }
 
 fn is_value_unfrozen_raw<'tcx>(

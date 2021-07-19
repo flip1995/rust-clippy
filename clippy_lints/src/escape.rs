@@ -1,5 +1,5 @@
 use clippy_utils::diagnostics::span_lint;
-use clippy_utils::ty::contains_ty;
+use clippy_utils::ty::{contains_ty, layout_of};
 use rustc_hir::intravisit;
 use rustc_hir::{self, AssocItemKind, Body, FnDecl, HirId, HirIdSet, Impl, ItemKind, Node};
 use rustc_infer::infer::TyCtxtInferExt;
@@ -9,7 +9,6 @@ use rustc_middle::ty::{self, TraitRef, Ty};
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::source_map::Span;
 use rustc_span::symbol::kw;
-use rustc_target::abi::LayoutOf;
 use rustc_target::spec::abi::Abi;
 use rustc_typeck::expr_use_visitor::{ConsumeMode, Delegate, ExprUseVisitor, PlaceBase, PlaceWithHirId};
 
@@ -193,7 +192,7 @@ impl<'a, 'tcx> EscapeDelegate<'a, 'tcx> {
     fn is_large_box(&self, ty: Ty<'tcx>) -> bool {
         // Large types need to be boxed to avoid stack overflows.
         if ty.is_box() {
-            self.cx.layout_of(ty.boxed_ty()).map_or(0, |l| l.size.bytes()) > self.too_large_for_stack
+            layout_of(self.cx, ty.boxed_ty()).map_or(0, |l| l.size.bytes()) > self.too_large_for_stack
         } else {
             false
         }

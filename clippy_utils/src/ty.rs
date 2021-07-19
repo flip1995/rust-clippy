@@ -9,11 +9,13 @@ use rustc_hir::def_id::DefId;
 use rustc_hir::{TyKind, Unsafety};
 use rustc_infer::infer::TyCtxtInferExt;
 use rustc_lint::LateContext;
+use rustc_middle::ty::layout::TyAndLayout;
 use rustc_middle::ty::subst::{GenericArg, GenericArgKind};
 use rustc_middle::ty::{self, AdtDef, IntTy, Ty, TypeFoldable, UintTy};
 use rustc_span::sym;
 use rustc_span::symbol::{Ident, Symbol};
 use rustc_span::DUMMY_SP;
+use rustc_target::abi::LayoutOf;
 use rustc_trait_selection::infer::InferCtxtExt;
 use rustc_trait_selection::traits::query::normalize::AtExt;
 
@@ -177,6 +179,13 @@ pub fn is_must_use_ty<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> bool {
         },
         _ => false,
     }
+}
+
+pub fn layout_of<'tcx>(cx: &LateContext<'tcx>, ty: Ty<'tcx>) -> Option<TyAndLayout<'tcx>> {
+    if ty.has_escaping_bound_vars() {
+        return None;
+    }
+    cx.layout_of(ty).ok()
 }
 
 // FIXME: Per https://doc.rust-lang.org/nightly/nightly-rustc/rustc_trait_selection/infer/at/struct.At.html#method.normalize

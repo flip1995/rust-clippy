@@ -4,7 +4,7 @@ use std::iter;
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::is_self_ty;
 use clippy_utils::source::snippet;
-use clippy_utils::ty::is_copy;
+use clippy_utils::ty::{is_copy, layout_of};
 use if_chain::if_chain;
 use rustc_ast::attr;
 use rustc_errors::Applicability;
@@ -15,7 +15,6 @@ use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty;
 use rustc_session::{declare_tool_lint, impl_lint_pass};
 use rustc_span::{sym, Span};
-use rustc_target::abi::LayoutOf;
 use rustc_target::spec::abi::Abi;
 use rustc_target::spec::Target;
 
@@ -162,7 +161,7 @@ impl<'tcx> PassByRefOrValue {
                     if_chain! {
                         if !output_lts.contains(input_lt);
                         if is_copy(cx, ty);
-                        if let Some(size) = cx.layout_of(ty).ok().map(|l| l.size.bytes());
+                        if let Some(size) = layout_of(cx, ty).map(|l| l.size.bytes());
                         if size <= self.ref_min_size;
                         if let hir::TyKind::Rptr(_, MutTy { ty: decl_ty, .. }) = input.kind;
                         then {
@@ -196,7 +195,7 @@ impl<'tcx> PassByRefOrValue {
                     if_chain! {
                         if is_copy(cx, ty);
                         if !is_self_ty(input);
-                        if let Some(size) = cx.layout_of(ty).ok().map(|l| l.size.bytes());
+                        if let Some(size) = layout_of(cx, ty).map(|l| l.size.bytes());
                         if size > self.value_max_size;
                         then {
                             span_lint_and_sugg(

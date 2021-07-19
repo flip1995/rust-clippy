@@ -1,12 +1,12 @@
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::is_qpath_def_path;
 use clippy_utils::source::snippet_with_applicability;
+use clippy_utils::ty::layout_of;
 use if_chain::if_chain;
 use rustc_ast::ast;
 use rustc_errors::Applicability;
 use rustc_hir as hir;
 use rustc_lint::LateContext;
-use rustc_target::abi::LayoutOf;
 
 pub fn check(
     cx: &LateContext<'_>,
@@ -104,7 +104,11 @@ fn is_min_or_max<'tcx>(cx: &LateContext<'tcx>, expr: &hir::Expr<'_>) -> Option<M
     }
 
     // Literals
-    let bits = cx.layout_of(ty).unwrap().size.bits();
+    let bits = if let Some(layout) = layout_of(cx, ty) {
+        layout.size.bits()
+    } else {
+        return None;
+    };
     let (minval, maxval): (u128, u128) = if ty.is_signed() {
         let minval = 1 << (bits - 1);
         let mut maxval = !(1 << (bits - 1));

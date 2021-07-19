@@ -1,17 +1,16 @@
 use std::cmp::Ordering;
 
+use clippy_utils::comparisons::Rel;
+use clippy_utils::consts::{constant, Constant};
+use clippy_utils::diagnostics::span_lint;
+use clippy_utils::source::snippet;
+use clippy_utils::ty::layout_of;
+use clippy_utils::{comparisons, sext};
 use rustc_hir::{Expr, ExprKind};
 use rustc_lint::{LateContext, LateLintPass};
 use rustc_middle::ty::{self, IntTy, UintTy};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::Span;
-use rustc_target::abi::LayoutOf;
-
-use clippy_utils::comparisons::Rel;
-use clippy_utils::consts::{constant, Constant};
-use clippy_utils::diagnostics::span_lint;
-use clippy_utils::source::snippet;
-use clippy_utils::{comparisons, sext};
 
 declare_clippy_lint! {
     /// **What it does:** Checks for comparisons where the relation is always either
@@ -89,7 +88,7 @@ fn numeric_cast_precast_bounds<'a>(cx: &LateContext<'_>, expr: &'a Expr<'_>) -> 
         let pre_cast_ty = cx.typeck_results().expr_ty(cast_exp);
         let cast_ty = cx.typeck_results().expr_ty(expr);
         // if it's a cast from i32 to u32 wrapping will invalidate all these checks
-        if cx.layout_of(pre_cast_ty).ok().map(|l| l.size) == cx.layout_of(cast_ty).ok().map(|l| l.size) {
+        if layout_of(cx, pre_cast_ty).map(|l| l.size) == layout_of(cx, cast_ty).map(|l| l.size) {
             return None;
         }
         match pre_cast_ty.kind() {

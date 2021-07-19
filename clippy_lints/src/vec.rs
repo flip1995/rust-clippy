@@ -1,9 +1,8 @@
-use crate::rustc_target::abi::LayoutOf;
 use clippy_utils::consts::{constant, Constant};
 use clippy_utils::diagnostics::span_lint_and_sugg;
 use clippy_utils::higher;
 use clippy_utils::source::snippet_with_applicability;
-use clippy_utils::ty::is_copy;
+use clippy_utils::ty::{is_copy, layout_of};
 use if_chain::if_chain;
 use rustc_errors::Applicability;
 use rustc_hir::{BorrowKind, Expr, ExprKind, Mutability};
@@ -155,7 +154,7 @@ impl UselessVec {
 
 fn size_of(cx: &LateContext<'_>, expr: &Expr<'_>) -> u64 {
     let ty = cx.typeck_results().expr_ty_adjusted(expr);
-    cx.layout_of(ty).map_or(0, |l| l.size.bytes())
+    layout_of(cx, ty).map_or(0, |l| l.size.bytes())
 }
 
 /// Returns the item type of the vector (i.e., the `T` in `Vec<T>`).

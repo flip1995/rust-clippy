@@ -1,11 +1,11 @@
 use clippy_utils::diagnostics::span_lint;
 use clippy_utils::is_hir_ty_cfg_dependant;
+use clippy_utils::ty::layout_of;
 use if_chain::if_chain;
 use rustc_hir::{Expr, ExprKind, GenericArg};
 use rustc_lint::LateContext;
 use rustc_middle::ty::{self, Ty};
 use rustc_span::symbol::sym;
-use rustc_target::abi::LayoutOf;
 
 use super::CAST_PTR_ALIGNMENT;
 
@@ -39,8 +39,8 @@ fn lint_cast_ptr_alignment<'tcx>(cx: &LateContext<'tcx>, expr: &Expr<'_>, cast_f
     if_chain! {
         if let ty::RawPtr(from_ptr_ty) = &cast_from.kind();
         if let ty::RawPtr(to_ptr_ty) = &cast_to.kind();
-        if let Ok(from_layout) = cx.layout_of(from_ptr_ty.ty);
-        if let Ok(to_layout) = cx.layout_of(to_ptr_ty.ty);
+        if let Some(from_layout) = layout_of(cx, from_ptr_ty.ty);
+        if let Some(to_layout) = layout_of(cx, to_ptr_ty.ty);
         if from_layout.align.abi < to_layout.align.abi;
         // with c_void, we inherently need to trust the user
         if !is_c_void(cx, from_ptr_ty.ty);
