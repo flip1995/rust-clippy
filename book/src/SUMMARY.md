@@ -22,5 +22,6 @@
     - [Backporting Changes](infrastructure/backport.md)
     - [Updating the Changelog](infrastructure/changelog_update.md)
     - [Release a New Version](infrastructure/release.md)
+    - [The Clippy Book](infrastructure/book.md)
 - [Roadmap](roadmap/README.md)
     - [2021](roadmap/2021.md)
