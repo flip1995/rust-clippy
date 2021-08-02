@@ -29,7 +29,7 @@ your `rust-clippy`
 directory:
 
 ```shell
-mdbook serve book
+mdbook serve book --open
 ```
 
 Then navigate to `http://localhost:3000` to see the generated book. While the server is running, changes you make will
