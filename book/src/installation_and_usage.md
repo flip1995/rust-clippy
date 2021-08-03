@@ -1,7 +1,9 @@
 # Installation and Usage
 
 Below are instructions on how to use Clippy as a subcommand, compiled from source
-or in Travis CI.
+or in Travis CI. Note that Clippy is installed as a 
+[component](https://rust-lang.github.io/rustup/concepts/components.html?highlight=clippy#components) as part of the 
+[rustup](https://rust-lang.github.io/rustup/installation/index.html) installation.
 
 ### As a cargo subcommand (`cargo clippy`)
 
