@@ -1,5 +1,7 @@
 # Configuring Clippy
 
+_NOTE: The configuration file is unstable and may be deprecated in the future._
+
 Some lints can be configured in a TOML file named `clippy.toml` or `.clippy.toml`. It contains a
 basic `variable = value` mapping eg.
 
