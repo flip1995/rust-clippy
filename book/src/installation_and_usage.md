@@ -1,16 +1,17 @@
 # Installation and Usage
 
-Below are instructions on how to use Clippy as a subcommand, compiled from source
-or in Travis CI. Note that Clippy is installed as a 
+Below are instructions on how to use Clippy as a subcommand of cargo or compiled from source as a standalone 
+`clippy-driver`. Note that Clippy is installed as a 
 [component](https://rust-lang.github.io/rustup/concepts/components.html?highlight=clippy#components) as part of the 
-[rustup](https://rust-lang.github.io/rustup/installation/index.html) installation.
+[rustup](https://rust-lang.github.io/rustup/installation/index.html) installation, so it is likely already installed 
+if your Rust toolchain is properly installed.
 
-### As a cargo subcommand (`cargo clippy`)
+## cargo subcommand (`cargo clippy`)
 
 One way to use Clippy is by installing Clippy through rustup as a cargo
 subcommand.
 
-#### Step 1: Install rustup
+### Step 1: Install rustup
 
 You can install [rustup](https://rustup.rs/) on supported platforms. This will help
 us install Clippy and its dependencies.
@@ -22,7 +23,7 @@ rustup and compiler:
 rustup update
 ```
 
-#### Step 2: Install Clippy
+### Step 2: Install Clippy
 
 Once you have rustup and the latest stable release (at least Rust 1.29) installed, run the following command:
 
@@ -31,7 +32,7 @@ rustup component add clippy
 ```
 If it says that it can't find the `clippy` component, please run `rustup self update`.
 
-#### Step 3: Run Clippy
+### Step 3: Run Clippy
 
 Now you can run Clippy by invoking the following command:
 
@@ -64,7 +65,7 @@ If you want to run Clippy **only** on the given crate, use the `--no-deps` optio
 cargo clippy -p example --no-deps 
 ```
 
-### As a rustc replacement (`clippy-driver`)
+## rustc replacement (`clippy-driver`)
 
 Clippy can also be used in projects that do not use cargo. To do so, you will need to replace
 your `rustc` compilation commands with `clippy-driver`. For example, if your project runs:
@@ -81,7 +82,7 @@ clippy-driver --edition 2018 -Cpanic=abort foo.rs
 
 Note that `rustc` will still run, i.e. it will still emit the output files it normally does.
 
-### Continuous Integration
+## Continuous Integration
 
 Adding Clippy to your continuous integration pipeline is a great way to automate the linting process. See the
 [Continuous Integration](continuous_integration) chapter for more information.
