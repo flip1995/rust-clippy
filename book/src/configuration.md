@@ -14,7 +14,7 @@ cognitive-complexity-threshold = 30
 See the [list of lints](https://rust-lang.github.io/rust-clippy/master/index.html) for more information about which
 lints can be configured and the meaning of the variables.
 
-To deactivate the “for further information visit *lint-link*” message you can define the `CLIPPY_DISABLE_DOCS_LINKS`
+To deactivate the "for further information visit *lint-link*" message you can define the `CLIPPY_DISABLE_DOCS_LINKS`
 environment variable.
 
 ### Allowing/denying lints
