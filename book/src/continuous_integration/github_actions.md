@@ -9,11 +9,10 @@ the [actions-rs](https://github.com/actions-rs) [clippy-check](https://github.co
 on: push
 name: Clippy check
 jobs:
-    clippy_check:
-        runs-on: ubuntu-latest
-        steps:
-            -   uses: actions/checkout@v1
-            -   name: Run Clippy
-                run: cargo clippy
-
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Run Clippy
+        run: cargo clippy
 ```
