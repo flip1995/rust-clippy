@@ -9,8 +9,8 @@ title = "Clippy Documentation"
 edition = "2018"
 
 [output.html]
-edit-url-template = "https://github.com/rust-lang/rust-clippy/edit/master/guide/{path}"
-git-repository-url = "https://github.com/rust-lang/rust-clippy/tree/master/guide"
+edit-url-template = "https://github.com/rust-lang/rust-clippy/edit/master/book/{path}"
+git-repository-url = "https://github.com/rust-lang/rust-clippy/tree/master/book"
 mathjax-support = true
 site-url = "/rust-clippy/"
 
