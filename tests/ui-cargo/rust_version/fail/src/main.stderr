@@ -1,0 +1,11 @@
+error: approximate value of `f{32, 64}::consts::LOG2_10` found
+  --> $DIR/main.rs:5:19
+   |
+LL |     let log2_10 = 3.321928094887362; // should trigger approx_constant
+   |                   ^^^^^^^^^^^^^^^^^
+   |
+   = note: `-D clippy::approx-constant` implied by `-D warnings`
+   = help: consider using the constant directly
+
+error: aborting due to previous error
+

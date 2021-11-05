@@ -46,6 +46,7 @@ extern crate clippy_utils;
 use clippy_utils::parse_msrv;
 use rustc_data_structures::fx::FxHashSet;
 use rustc_lint::LintId;
+use rustc_semver::RustcVersion;
 use rustc_session::Session;
 
 /// Macro used to declare a Clippy lint.
@@ -440,7 +441,7 @@ pub fn read_conf(sess: &Session) -> Conf {
 /// Register all lints and lint groups with the rustc plugin registry
 ///
 /// Used in `./src/driver.rs`.
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::missing_panics_doc)]
 pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf: &Conf) {
     register_removed_non_tool_lints(store);
 
@@ -534,15 +535,35 @@ pub fn register_plugins(store: &mut rustc_lint::LintStore, sess: &Session, conf:
     store.register_late_pass(|| Box::new(non_octal_unix_permissions::NonOctalUnixPermissions));
     store.register_early_pass(|| Box::new(unnecessary_self_imports::UnnecessarySelfImports));
 
-    let msrv = conf.msrv.as_ref().and_then(|s| {
-        parse_msrv(s, None, None).or_else(|| {
-            sess.err(&format!(
-                "error reading Clippy's configuration file. `{}` is not a valid Rust version",
-                s
-            ));
-            None
+    let msrv = conf
+        .msrv
+        .as_ref()
+        .and_then(|s| {
+            parse_msrv(s, None, None).or_else(|| {
+                sess.err(&format!(
+                    "error reading Clippy's configuration file. `{}` is not a valid Rust version",
+                    s
+                ));
+                None
+            })
         })
-    });
+        .or_else(|| {
+            cargo_metadata::MetadataCommand::new()
+                .exec()
+                .ok()
+                .as_ref()
+                .and_then(cargo_metadata::Metadata::root_package)
+                .and_then(|pkg| pkg.rust_version.as_ref())
+                .and_then(|v| v.comparators.get(0))
+                // Note: this will fail for Rust version 1.4294967296.0 in round about 496 million years
+                .map(|v| {
+                    RustcVersion::new(
+                        v.major.try_into().unwrap(),
+                        v.minor.unwrap_or(0).try_into().unwrap(),
+                        v.patch.unwrap_or(0).try_into().unwrap(),
+                    )
+                })
+        });
 
     let avoid_breaking_exported_api = conf.avoid_breaking_exported_api;
     store.register_late_pass(move || Box::new(approx_const::ApproxConstant::new(msrv)));
