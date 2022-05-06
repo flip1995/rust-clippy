@@ -27,33 +27,48 @@ levels.
 > `#[allow(..)]`s through your code. So if you disagree with a lint, don't feel
 > bad disabling them for parts of your code or the whole project.
 
-#### Error on lints
+#### Command line
 
-Instead of only emitting warnings you may want Clippy to emit errors and abort
-the compilation instead. This is especially useful if you run Clippy in [CI].
-You can do that with
+You can configure lint levels on the command line by adding
+`-A/W/D clippy::lint_name` like this:
+
+```bash
+cargo clippy -- -Aclippy::style -Wclippy::double_neg -Dclippy::perf
+```
+
+For [CI] all warnings can be elevated to errors which will inturn fail
+the build and cause Clippy to exit with a code other than `0`.
 
 ```
 cargo clippy -- -Dwarnings
 ```
 
-> _Note:_ that adding `-D warnings` will cause your build to fail if **any**
-> warnings are found in your code. That includes warnings found by rustc (e.g.
-> `dead_code`, etc.). If you want to avoid this and only cause an error for
-> Clippy warnings, use `-D clippy::all` on the command line. (You can swap
-> `clippy::all` with the specific lint category you are targeting.)
+> _Note:_ Adding `-D warnings` will cause your build to fail if **any** warnings
+> are found in your code. That includes warnings found by rustc (e.g.
+> `dead_code`, etc.).
+
+For more information on configuring lint levels, see the [rustc documentation].
+
+[rustc documentation]: https://doc.rust-lang.org/rustc/lints/levels.html#configuring-warning-levels
 
 #### Even more lints
 
-Clippy has two lint groups which are allow-by-default. This means, that you will
+Clippy has lint groups which are allow-by-default. This means, that you will
 have to enable the lints in those groups manually.
+
+For a full list of all lints with their description and examples, please refere
+to [Clippy's lint list]. The two most important allow-by-default groups are
+described below:
+
+[Clippy's lint list]: https://rust-lang.github.io/rust-clippy/master/index.html
 
 ##### `clippy::pedantic`
 
 The first group is the `pedantic` group. This group contains really opinionated
 lints, that may have some intentional false positives in order to prevent false
 negatives. So while this group is ready to be used in production, you can expect
-to sprinkle multiple `#[allow(..)]`s in your code.
+to sprinkle multiple `#[allow(..)]`s in your code. If you find any false
+positives, you're still welcome to report them to us for future improvements.
 
 > FYI: Clippy uses the whole group to lint itself.
 
@@ -77,15 +92,6 @@ other of Clippy's lint groups.
 > _Note:_ We try to keep the warn-by-default groups free from false positives
 > (FP). If you find that a lint wrongly triggers, please report it in an issue
 > (if there isn't an issue for that FP already)
-
-#### Command line
-
-You can configure lint levels on the command line by adding
-`-A/W/Dclippy::lint_name` like this:
-
-```bash
-cargo clippy -- -Aclippy::style -Wclippy::double_neg -Dclippy::perf
-```
 
 #### Source Code
 

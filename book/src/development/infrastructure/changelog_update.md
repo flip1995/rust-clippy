@@ -1,7 +1,6 @@
 # Changelog Update
 
-If you want to help with updating the [changelog][changelog], you're in the
-right place.
+If you want to help with updating the [changelog], you're in the right place.
 
 ## When to update
 

@@ -31,8 +31,8 @@ intentionally written like it is.
 
 It is still recommended to fix code that is linted by lints out of this group
 instead of `#[allow]`ing the lint. In case you intentionally have written code
-that offends the lint you should specifically `#[allow]` the lint and add give a
-reason why the code is correct as written.
+that offends the lint you should specifically and locally `#[allow]` the lint
+and add give a reason why the code is correct as written.
 
 ## Complexity
 
