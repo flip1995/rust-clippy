@@ -1,7 +1,7 @@
 # Proposals
 
-This chapter is about proposals for changes that should be worked on in or
-around Clippy in the long run.
+This chapter is about accepted proposals for changes that should be worked on in
+or around Clippy in the long run.
 
 Besides adding more and more lints and improve the lints that Clippy already
 has, Clippy is also interested in making the experience of its users, developers
