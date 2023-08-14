@@ -3,9 +3,11 @@ use clippy_utils::is_from_proc_macro;
 use clippy_utils::ty::needs_ordered_drop;
 use rustc_ast::Mutability;
 use rustc_hir::def::Res;
-use rustc_hir::{BindingAnnotation, ByRef, Expr, ExprKind, HirId, Local, Node, Pat, PatKind, QPath};
+use rustc_hir::{
+    BindingAnnotation, ByRef, Expr, ExprKind, HirId, Local, Node, Pat, PatKind, QPath,
+};
 use rustc_lint::{LateContext, LateLintPass, LintContext};
-use rustc_middle::lint::in_external_macro;
+use rustc_middle::lint::{in_external_macro, is_from_async_await};
 use rustc_session::{declare_lint_pass, declare_tool_lint};
 use rustc_span::symbol::Ident;
 use rustc_span::DesugaringKind;
@@ -47,7 +49,9 @@ declare_lint_pass!(RedundantLocals => [REDUNDANT_LOCALS]);
 impl<'tcx> LateLintPass<'tcx> for RedundantLocals {
     fn check_local(&mut self, cx: &LateContext<'tcx>, local: &'tcx Local<'tcx>) {
         if_chain! {
-            if !local.span.is_desugaring(DesugaringKind::Async);
+            // Async function parameters are lowered into the closure body, so we can't lint them.
+            // see `lower_maybe_async_body` in `rust_ast_lowering`
+            if !is_from_async_await(local.span);
             // the pattern is a single by-value binding
             if let PatKind::Binding(BindingAnnotation(ByRef::No, mutability), _, ident, None) = local.pat.kind;
             // the binding is not type-ascribed
@@ -106,7 +110,12 @@ fn affects_assignments(cx: &LateContext<'_>, mutability: Mutability, bind: HirId
 }
 
 /// Check if a rebinding of a local affects the code's drop behavior.
-fn affects_drop_behavior<'tcx>(cx: &LateContext<'tcx>, bind: HirId, rebind: HirId, rebind_expr: &Expr<'tcx>) -> bool {
+fn affects_drop_behavior<'tcx>(
+    cx: &LateContext<'tcx>,
+    bind: HirId,
+    rebind: HirId,
+    rebind_expr: &Expr<'tcx>,
+) -> bool {
     let hir = cx.tcx.hir();
 
     // the rebinding is in a different scope than the original binding
