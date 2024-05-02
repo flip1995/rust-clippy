@@ -3,7 +3,7 @@
 #![warn(rust_2018_idioms, unused_lifetimes)]
 
 use clap::{Args, Parser, Subcommand};
-use clippy_dev::{dogfood, fmt, lint, new_lint, serve, setup, update_lints};
+use clippy_dev::{dogfood, fmt, lint, new_lint, release, serve, setup, sync, update_lints};
 use std::convert::Infallible;
 
 fn main() {
@@ -75,6 +75,15 @@ fn main() {
             uplift,
         } => update_lints::rename(&old_name, new_name.as_ref().unwrap_or(&old_name), uplift),
         DevCommand::Deprecate { name, reason } => update_lints::deprecate(&name, reason.as_deref()),
+        DevCommand::Sync(SyncCommand { subcommand }) => match subcommand {
+            SyncSubcommand::UpdateToolchain => sync::update_toolchain(),
+            SyncSubcommand::Pull { hash } => sync::rustc_pull(hash),
+            SyncSubcommand::Push { repo_path, user } => sync::rustc_push(repo_path, &user),
+        },
+        DevCommand::Release(ReleaseCommand { subcommand }) => match subcommand {
+            ReleaseSubcommand::UpdateVersion => release::update_version(),
+            ReleaseSubcommand::Commit { branch } => release::rustc_clippy_commit(branch),
+        },
     }
 }
 
@@ -225,6 +234,10 @@ enum DevCommand {
         /// The reason for deprecation
         reason: Option<String>,
     },
+    /// Sync between the rust repo and the Clippy repo
+    Sync(SyncCommand),
+    /// Manage Clippy releases
+    Release(ReleaseCommand),
 }
 
 #[derive(Args)]
@@ -290,4 +303,52 @@ enum RemoveSubcommand {
     GitHook,
     /// Remove the tasks added with 'cargo dev setup vscode-tasks'
     VscodeTasks,
+}
+
+#[derive(Args)]
+struct SyncCommand {
+    #[command(subcommand)]
+    subcommand: SyncSubcommand,
+}
+
+#[derive(Subcommand)]
+enum SyncSubcommand {
+    #[command(name = "update_toolchain")]
+    /// Update nightly toolchain in rust-toolchain file
+    UpdateToolchain,
+    /// Pull changes from rustc
+    Pull {
+        #[arg(long)]
+        /// The Rust hash of the commit to pull from
+        ///
+        /// This should only be necessary, if there were breaking changes to `clippy_dev` itself,
+        /// i.e. breaking changes to `rustc_lexer`.
+        hash: Option<String>,
+    },
+    /// Push changes to rustc
+    Push {
+        /// The path to a rustc repo that will be used for pushing changes
+        repo_path: String,
+        #[arg(long)]
+        /// The GitHub username to use for pushing changes
+        user: String,
+    },
+}
+
+#[derive(Args)]
+struct ReleaseCommand {
+    #[command(subcommand)]
+    subcommand: ReleaseSubcommand,
+}
+
+#[derive(Subcommand)]
+enum ReleaseSubcommand {
+    #[command(name = "update_version")]
+    /// Update the version in the Cargo.toml files
+    UpdateVersion,
+    /// Print the Clippy commit in the rustc repo for the specified branch
+    Commit {
+        /// For which branch to print the commit
+        branch: release::Branch,
+    },
 }

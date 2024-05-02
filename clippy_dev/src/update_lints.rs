@@ -946,7 +946,7 @@ fn remove_line_splices(s: &str) -> String {
 /// # Panics
 ///
 /// Panics if the path could not read or then written
-fn replace_region_in_file(
+pub(crate) fn replace_region_in_file(
     update_mode: UpdateMode,
     path: &Path,
     start: &str,

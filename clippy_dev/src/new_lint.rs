@@ -185,8 +185,8 @@ fn to_camel_case(name: &str) -> String {
         .collect()
 }
 
-pub(crate) fn get_stabilization_version() -> String {
-    fn parse_manifest(contents: &str) -> Option<String> {
+pub(crate) fn clippy_version() -> (u32, u32) {
+    fn parse_manifest(contents: &str) -> Option<(u32, u32)> {
         let version = contents
             .lines()
             .filter_map(|l| l.split_once('='))
@@ -195,14 +195,15 @@ pub(crate) fn get_stabilization_version() -> String {
             return None;
         };
         let (minor, patch) = version.split_once('.')?;
-        Some(format!(
-            "{}.{}.0",
-            minor.parse::<u32>().ok()?,
-            patch.parse::<u32>().ok()?
-        ))
+        Some((minor.parse().ok()?, patch.parse().ok()?))
     }
     let contents = fs::read_to_string("Cargo.toml").expect("Unable to read `Cargo.toml`");
     parse_manifest(&contents).expect("Unable to find package version in `Cargo.toml`")
+}
+
+pub(crate) fn get_stabilization_version() -> String {
+    let (minor, patch) = clippy_version();
+    format!("{minor}.{patch}.0")
 }
 
 fn get_test_file_contents(lint_name: &str, msrv: bool) -> String {
