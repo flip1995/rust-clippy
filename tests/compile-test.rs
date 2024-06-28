@@ -112,8 +112,13 @@ fn base_config(test_dir: &str) -> (Config, Args) {
     args.bless |= var_os("RUSTC_BLESS").is_some_and(|v| v != "0");
 
     let target_dir = PathBuf::from(var_os("CARGO_TARGET_DIR").unwrap_or_else(|| "target".into()));
+    let mut skip_files = vec![];
+    if IS_RUSTC_TEST_SUITE {
+        skip_files.push("to_string_in_format_args_incremental".to_string());
+    }
     let mut config = Config {
         output_conflict_handling: OutputConflictHandling::Error,
+        skip_files,
         filter_files: env::var("TESTNAME")
             .map(|filters| filters.split(',').map(str::to_string).collect())
             .unwrap_or_default(),
