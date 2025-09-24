@@ -6,7 +6,8 @@ use std::process::exit;
 
 use xshell::{Shell, cmd};
 
-const JOSH_FILTER: &str = ":rev(0450db33a5d8587f7c1d4b6d233dac963605766b:prefix=src/tools/clippy):/src/tools/clippy";
+const JOSH_FILTER: &str =
+    ":rev(20ce69b9a63bcd2756cd906fe0964d1e901e042a:prefix=src/tools/clippy):/src/tools/clippy:prune=trivial-merge";
 const JOSH_PORT: &str = "42042";
 const TOOLCHAIN_TOML: &str = "rust-toolchain.toml";
 const UTILS_README: &str = "clippy_utils/README.md";
