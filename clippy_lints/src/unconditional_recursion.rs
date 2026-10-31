@@ -426,7 +426,7 @@ fn check_from(cx: &LateContext<'_>, method_span: Span, method_def_id: LocalDefId
     // which calls back into our `From::from` again (`Into` is not specializable).
     // rustc's unconditional_recursion already catches calling `From::from` directly
     if let Some((fn_def_id, node_args)) = fn_def_id_with_node_args(cx, expr)
-        && let [s1, s2] = **node_args
+        && let [s1, s2] = *node_args.as_slice()
         && let (Some(s1), Some(s2)) = (s1.as_type(), s2.as_type())
         && let Some(trait_def_id) = cx.tcx.trait_of_assoc(fn_def_id)
         && cx.tcx.is_diagnostic_item(sym::Into, trait_def_id)
@@ -450,7 +450,7 @@ impl<'tcx> LateLintPass<'tcx> for UnconditionalRecursion {
     ) {
         // If the function is a method...
         if let FnKind::Method(name, _) = kind
-            && let expr = expr_or_init(cx, &body.value).peel_blocks()
+            && let expr = expr_or_init(cx, body.value).peel_blocks()
             // Doesn't have a conditional return.
             && !has_conditional_return(body, expr)
         {
