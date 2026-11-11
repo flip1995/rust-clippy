@@ -17,7 +17,8 @@ use rustc_lint::LateContext;
 use rustc_middle::mir::Mutability;
 use rustc_middle::ty::adjustment::{Adjust, Adjustment, DerefAdjustKind, OverloadedDeref};
 use rustc_middle::ty::{
-    self, ClauseKind, GenericArg, GenericArgKind, GenericArgs, ParamTy, ProjectionClause, TraitClause, Ty, CallerBoundsIterator
+    self, CallerBoundsIterator as _, ClauseKind, GenericArg, GenericArgKind, GenericArgs, ParamTy, ProjectionClause,
+    TraitClause, Ty,
 };
 use rustc_span::Symbol;
 use rustc_trait_selection::traits::query::evaluate_obligation::InferCtxtExt as _;
@@ -482,6 +483,11 @@ fn get_callee_generic_args_and_args<'tcx>(
     None
 }
 
+/// Returns all caller bounds in the `ParamEnv` of `def_id`.
+fn caller_clauses<'tcx>(cx: &LateContext<'tcx>, def_id: DefId) -> impl Iterator<Item = ty::Clause<'tcx>> {
+    cx.tcx.param_env(def_id).caller_bounds().all_clauses(cx.tcx).iter()
+}
+
 /// Returns the `TraitClause`s and `ProjectionClause`s for a function's input type.
 fn get_input_traits_and_projections<'tcx>(
     cx: &LateContext<'tcx>,
@@ -490,7 +496,7 @@ fn get_input_traits_and_projections<'tcx>(
 ) -> (Vec<TraitClause<'tcx>>, Vec<ProjectionClause<'tcx>>) {
     let mut trait_predicates = Vec::new();
     let mut projection_predicates = Vec::new();
-    for clause in cx.tcx.param_env(callee_def_id).caller_bounds().all_clauses(cx.tcx).iter() {
+    for clause in caller_clauses(cx, callee_def_id) {
         match clause.kind().skip_binder() {
             ClauseKind::Trait(trait_predicate) if trait_predicate.trait_ref.self_ty() == input => {
                 trait_predicates.push(trait_predicate);
@@ -552,14 +558,11 @@ fn can_change_type<'a>(cx: &LateContext<'a>, mut expr: &'a Expr<'a>, mut ty: Ty<
                             return false;
                         }
 
-                        let mut trait_clauses = cx.tcx.param_env(callee_def_id).caller_bounds().all_clauses(cx.tcx).iter().filter(|clause| {
-                            if let ClauseKind::Trait(trait_predicate) = clause.kind().skip_binder()
-                                && trait_predicate.trait_ref.self_ty() == param_ty
-                            {
-                                true
-                            } else {
-                                false
-                            }
+                        let mut trait_clauses = caller_clauses(cx, callee_def_id).filter(|clause| {
+                            matches!(
+                                clause.kind().skip_binder(),
+                                ClauseKind::Trait(trait_predicate) if trait_predicate.trait_ref.self_ty() == param_ty
+                            )
                         });
 
                         let new_subst = cx
